@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
       }
       
       // Build MINIMAL data context for C1 - only what's needed for UI generation
-      if (geminiResult) {
+      if (geminiResult && dataSource) {
         // Use ONLY the required columns from Gemini analysis
         const requiredColumns = geminiResult.requiredColumns || 
           (storedAnalysis?.keyColumns || Object.keys(dataSource.schema_info || {}).slice(0, 10));
