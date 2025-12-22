@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         database,
         user: username,
         password,
-        ssl: false, // For development; use proper SSL in production
+        // SSL not configured for development; add proper SSL config in production
       });
 
       // Test connection
