@@ -150,14 +150,16 @@ export async function POST(req: NextRequest) {
       
       // Build MINIMAL data context for C1 - only what's needed for UI generation
       if (geminiResult && dataSource) {
+        // Capture dataSource in const for TypeScript narrowing
+        const ds = dataSource;
         // Use ONLY the required columns from Gemini analysis
         const requiredColumns = geminiResult.requiredColumns || 
-          (storedAnalysis?.keyColumns || Object.keys(dataSource.schema_info || {}).slice(0, 10));
+          (storedAnalysis?.keyColumns || Object.keys(ds.schema_info || {}).slice(0, 10));
         
         // Extract schema for ONLY required columns
         const minimalSchema = requiredColumns.reduce((acc: Record<string, string>, col: string) => {
-          if (dataSource.schema_info?.[col]) {
-            acc[col] = dataSource.schema_info[col];
+          if (ds.schema_info?.[col]) {
+            acc[col] = ds.schema_info[col];
           }
           return acc;
         }, {});
@@ -192,7 +194,7 @@ You are DashMind AI, a business intelligence assistant generating interactive UI
 
 **User Request:** ${userQuery}${explanationText}
 
-**Data Source:** ${dataSource.name} (${dataSource.type})
+**Data Source:** ${ds.name} (${ds.type})
 
 **Required Data Structure (${requiredColumns.length} columns only):**
 ${JSON.stringify(minimalSchema, null, 2)}
