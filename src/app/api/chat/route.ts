@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   // Get data source context if provided
   let dataContext = "";
   let dataSource: DataSource | null = null;
-  let geminiResult: ReturnType<typeof processDataQuery> extends Promise<infer T> ? T : never | null = null;
+  let geminiResult: Awaited<ReturnType<typeof processDataQuery>> | null = null;
   let queryExplanation: Awaited<ReturnType<typeof generateQueryExplanation>> | null = null;
   let isCached = false;
   
