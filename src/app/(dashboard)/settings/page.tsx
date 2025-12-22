@@ -94,7 +94,7 @@ export default function SettingsPage() {
 
         <Tabs defaultValue="account" className="space-y-6">
           <div className="flex gap-6">
-            <TabsList orientation="vertical" className="w-48 h-auto flex-col items-start">
+            <TabsList className="w-48 h-auto flex-col items-start">
               <TabsTrigger value="account" className="w-full justify-start">
                 Account
               </TabsTrigger>
