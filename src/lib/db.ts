@@ -16,7 +16,7 @@ export async function query<T>(
 ): Promise<T[]> {
   try {
     // Check if sql has a query method for parameterized queries
-    const sqlObj = sql as { query?: (text: string, params: unknown[]) => Promise<T[]>; unsafe?: (text: string) => Promise<T[]> };
+    const sqlObj = sql as unknown as { query?: (text: string, params: unknown[]) => Promise<T[]>; unsafe?: (text: string) => Promise<T[]> };
     if (typeof sqlObj.query === 'function') {
       return await sqlObj.query(queryText, params);
     }
