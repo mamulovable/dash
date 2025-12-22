@@ -224,7 +224,7 @@ export default function UsagePage() {
                       <p className="text-sm text-muted-foreground">{progress}%</p>
                     </div>
                   </div>
-                </svg>
+                </div>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
