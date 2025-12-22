@@ -271,7 +271,7 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting.`;
       .map(([key]) => key);
     
     const categoricalColumns = analysis.categoricalColumns || Object.entries(schema)
-      .filter(([_, type]) => type === "text" || type === "boolean")
+      .filter(([, type]) => type === "text" || type === "boolean")
       .map(([key]) => key);
 
     return {
