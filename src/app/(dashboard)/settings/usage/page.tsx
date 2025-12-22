@@ -5,7 +5,6 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Check, Download, Loader2 } from "lucide-react";
 import {
   Table,
@@ -15,26 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-
-const dailyUsage = [
-  { date: "Oct 15", cached: 2, api: 1 },
-  { date: "Oct 20", cached: 4, api: 2 },
-  { date: "Oct 25", cached: 3, api: 1 },
-  { date: "Oct 30", cached: 5, api: 2 },
-  { date: "Nov 4", cached: 3, api: 1 },
-  { date: "Nov 9", cached: 4, api: 2 },
-  { date: "Nov 14", cached: 5, api: 1 },
-];
 
 const queryPacks = [
   { price: "$19", queries: "100 queries", badge: null },

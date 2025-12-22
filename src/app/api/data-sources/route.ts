@@ -17,13 +17,13 @@ export async function GET() {
       );
     }
     
-    const dataSources = await query<any>(
+    const dataSources = await query<Record<string, unknown>>(
       `SELECT * FROM data_sources WHERE user_id = $1 ORDER BY created_at DESC`,
       [user.id]
     );
     
     // Parse JSONB fields (they might come as strings from Neon)
-    const parsedDataSources = dataSources.map((ds: any) => ({
+    const parsedDataSources = dataSources.map((ds: Record<string, unknown>) => ({
       ...ds,
       config: typeof ds.config === 'string' ? JSON.parse(ds.config) : ds.config,
       selected_columns: typeof ds.selected_columns === 'string' 

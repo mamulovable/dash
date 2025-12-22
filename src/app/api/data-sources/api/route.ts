@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     // Test API connection
     let responseData: unknown = null;
-    let tableSchema: Record<string, string> = {};
+    const tableSchema: Record<string, string> = {};
     let sampleData: Record<string, unknown>[] = [];
     let rowCount = 0;
 
@@ -96,7 +96,8 @@ export async function POST(req: NextRequest) {
         sampleData = responseData as Record<string, unknown>[];
       } else if (responseData && typeof responseData === "object") {
         // Try to find data array in common patterns
-        const data = (responseData as any).data || (responseData as any).results || (responseData as any).items || [];
+        const responseObj = responseData as Record<string, unknown>;
+        const data = (responseObj.data || responseObj.results || responseObj.items || []) as unknown[];
         if (Array.isArray(data)) {
           sampleData = data;
         } else {
@@ -129,11 +130,12 @@ export async function POST(req: NextRequest) {
         }
       }
 
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to connect to API";
       return NextResponse.json(
         { 
           success: false, 
-          error: error.message || "Failed to connect to API" 
+          error: errorMessage
         },
         { status: 400 }
       );
@@ -260,12 +262,13 @@ export async function POST(req: NextRequest) {
       data: result[0],
       preview: sampleData.slice(0, 10), // Return first 10 rows as preview
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error connecting REST API:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to connect to REST API";
     return NextResponse.json(
       { 
         success: false, 
-        error: error.message || "Failed to connect to REST API" 
+        error: errorMessage
       },
       { status: 500 }
     );

@@ -107,12 +107,13 @@ export async function GET(req: NextRequest) {
       success: true,
       authUrl,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in Google Sheets auth:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to initiate Google OAuth";
     return NextResponse.json(
       { 
         success: false, 
-        error: error.message || "Failed to initiate Google OAuth" 
+        error: errorMessage
       },
       { status: 500 }
     );
@@ -169,9 +170,10 @@ export async function POST(req: NextRequest) {
         spreadsheetId,
         range: `${sheetName}!A1:Z1000`, // Adjust range as needed
       });
-    } catch (error: any) {
+    } catch (error) {
       // If token expired, try to refresh
-      if (error.code === 401 && refreshToken) {
+      const errorObj = error as { code?: number };
+      if (errorObj.code === 401 && refreshToken) {
         try {
           const { credentials } = await oauth2Client.refreshAccessToken();
           oauth2Client.setCredentials(credentials);
@@ -179,7 +181,7 @@ export async function POST(req: NextRequest) {
             spreadsheetId,
             range: `${sheetName}!A1:Z1000`,
           });
-        } catch (refreshError) {
+        } catch {
           throw new Error("Failed to refresh access token. Please reconnect your Google account.");
         }
       } else {

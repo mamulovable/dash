@@ -51,7 +51,7 @@ export function PricingPreview() {
           Simple, Transparent Pricing
         </h2>
         <p className="mt-4 text-lg text-muted-foreground">
-          Choose the plan that's right for your business. No hidden fees, cancel
+          Choose the plan that&apos;s right for your business. No hidden fees, cancel
           anytime.
         </p>
       </div>

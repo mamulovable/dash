@@ -8,7 +8,6 @@ import { processDataQuery, generateQueryExplanation, DataSourceAnalysis } from "
 import { generateCacheKey, getFromCache, setCache } from "@/lib/redis";
 import { canMakeQuery } from "@/lib/tier-limits";
 import { DataSource } from "@/types";
-import { v4 as uuidv4 } from "uuid";
 
 interface ChatRequestBody {
   prompt: DBMessage;
@@ -69,7 +68,7 @@ export async function POST(req: NextRequest) {
   let isCached = false;
   
   if (dataSourceId && user) {
-    const dsResult = await queryOne<any>(
+    const dsResult = await queryOne<Record<string, unknown>>(
       `SELECT * FROM data_sources WHERE id = $1 AND user_id = $2`,
       [dataSourceId, user.id]
     );
@@ -90,7 +89,7 @@ export async function POST(req: NextRequest) {
     
     if (dataSource) {
       // Get stored analysis from data source config (from initial Gemini analysis)
-      const storedAnalysis = (dataSource.config as any)?.analysis as DataSourceAnalysis | null;
+      const storedAnalysis = (dataSource.config as Record<string, unknown>)?.analysis as DataSourceAnalysis | null;
       
       // Generate cache key (userQuery already defined above)
       const cacheKey = generateCacheKey(
@@ -164,7 +163,7 @@ export async function POST(req: NextRequest) {
         }, {});
         
         // Get minimal data - ONLY the required columns, max 30 rows
-        const minimalData = geminiResult.data.slice(0, 30).map((row: any) => {
+        const minimalData = geminiResult.data.slice(0, 30).map((row: Record<string, unknown>) => {
           const minimal: Record<string, unknown> = {};
           requiredColumns.forEach((col: string) => {
             if (row && col in row) {

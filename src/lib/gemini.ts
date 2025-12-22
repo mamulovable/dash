@@ -267,7 +267,7 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting.`;
     
     // Extract numeric and categorical columns from schema if not provided
     const numericColumns = analysis.numericColumns || Object.entries(schema)
-      .filter(([_, type]) => type === "integer" || type === "decimal")
+      .filter(([, type]) => type === "integer" || type === "decimal")
       .map(([key]) => key);
     
     const categoricalColumns = analysis.categoricalColumns || Object.entries(schema)
@@ -292,15 +292,15 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting.`;
     
     // Fallback: generate basic analysis from schema
     const numericColumns = Object.entries(schema)
-      .filter(([_, type]) => type === "integer" || type === "decimal")
+      .filter(([, type]) => type === "integer" || type === "decimal")
       .map(([key]) => key);
     
     const categoricalColumns = Object.entries(schema)
-      .filter(([_, type]) => type === "text" || type === "boolean")
+      .filter(([, type]) => type === "text" || type === "boolean")
       .map(([key]) => key);
     
     const timeColumns = Object.entries(schema)
-      .filter(([_, type]) => type === "date")
+      .filter(([, type]) => type === "date")
       .map(([key]) => key);
     
     return {

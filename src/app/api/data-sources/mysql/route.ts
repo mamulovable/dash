@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     // Test connection
     let connection: mysql.Connection | null = null;
-    let tableSchema: Record<string, string> = {};
+    const tableSchema: Record<string, string> = {};
     let sampleData: Record<string, unknown>[] = [];
     let rowCount = 0;
 
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Build schema info
-      (schemaRows as any[]).forEach((row) => {
+      (schemaRows as Array<{ COLUMN_NAME: string; DATA_TYPE: string }>).forEach((row) => {
         tableSchema[row.COLUMN_NAME] = row.DATA_TYPE;
       });
 
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         [tableName]
       ) as [mysql.RowDataPacket[], unknown];
       
-      rowCount = parseInt((countRows as any[])[0].count);
+      rowCount = parseInt(String((countRows as Array<{ count: string | number }>)[0].count));
 
     } finally {
       if (connection) {
@@ -169,12 +169,13 @@ export async function POST(req: NextRequest) {
       data: result[0],
       preview: sampleData.slice(0, 10), // Return first 10 rows as preview
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error connecting MySQL:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to connect to MySQL database";
     return NextResponse.json(
       { 
         success: false, 
-        error: error.message || "Failed to connect to MySQL database" 
+        error: errorMessage
       },
       { status: 500 }
     );

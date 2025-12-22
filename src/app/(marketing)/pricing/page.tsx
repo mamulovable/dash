@@ -59,7 +59,7 @@ export default function PricingPage() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-lg text-muted-foreground">
-            Choose the plan that's right for your business. No hidden fees, cancel
+            Choose the plan that&apos;s right for your business. No hidden fees, cancel
             anytime.
           </p>
         </div>

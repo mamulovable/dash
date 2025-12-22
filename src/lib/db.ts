@@ -16,14 +16,15 @@ export async function query<T>(
 ): Promise<T[]> {
   try {
     // Check if sql has a query method for parameterized queries
-    if (typeof (sql as any).query === 'function') {
-      return await (sql as any).query(queryText, params) as T[];
+    const sqlObj = sql as { query?: (text: string, params: unknown[]) => Promise<T[]>; unsafe?: (text: string) => Promise<T[]> };
+    if (typeof sqlObj.query === 'function') {
+      return await sqlObj.query(queryText, params);
     }
     
     if (params.length === 0) {
       // No parameters - execute directly using unsafe or template literal
-      if (typeof (sql as any).unsafe === 'function') {
-        return await (sql as any).unsafe(queryText) as T[];
+      if (typeof sqlObj.unsafe === 'function') {
+        return await sqlObj.unsafe(queryText);
       }
       // Construct simple template literal
       const escaped = queryText.replace(/`/g, '\\`').replace(/\$/g, '\\$');
@@ -52,7 +53,7 @@ export async function query<T>(
     const templateValues: unknown[] = [];
     let remaining = queryText;
     
-    for (const { index, paramNum } of paramPositions) {
+    for (const { paramNum } of paramPositions) {
       const paramIndex = paramNum - 1;
       const placeholder = `$${paramNum}`;
       const pos = remaining.lastIndexOf(placeholder);

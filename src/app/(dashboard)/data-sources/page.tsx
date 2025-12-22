@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Database, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { DataSource } from "@/types";
 
 interface DataSourceDisplay {
   id: string;
@@ -61,7 +60,7 @@ export default function DataSourcesPage() {
       const result = await response.json();
 
       if (result.success) {
-        const formatted: DataSourceDisplay[] = result.data.map((ds: any) => {
+        const formatted: DataSourceDisplay[] = result.data.map((ds: Record<string, unknown>) => {
           // Parse JSONB fields (they come as strings from database)
           let selectedCols: string[] = [];
           try {

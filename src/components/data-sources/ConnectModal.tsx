@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, Check, X, Loader2, Database, FileSpreadsheet } from "lucide-react";
+import { Upload, Check, X, Loader2, FileSpreadsheet } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -705,7 +705,7 @@ export function ConnectModal({ open, onOpenChange, onSuccess }: ConnectModalProp
                   )}
                 </Button>
                 <p className="text-sm text-muted-foreground">
-                  After connecting, you'll be able to select spreadsheets and sheets
+                  After connecting, you&apos;ll be able to select spreadsheets and sheets
                 </p>
               </div>
             ) : (

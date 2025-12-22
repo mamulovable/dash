@@ -23,6 +23,7 @@ export default function QueriesPage() {
 
   useEffect(() => {
     fetchQueries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, search, sortBy, page]);
 
   const fetchQueries = async () => {

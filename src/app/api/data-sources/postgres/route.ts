@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     });
 
     let connectionTested = false;
-    let tableSchema: Record<string, string> = {};
+    const tableSchema: Record<string, string> = {};
     let sampleData: Record<string, unknown>[] = [];
     let rowCount = 0;
 
@@ -176,12 +176,13 @@ export async function POST(req: NextRequest) {
       data: result[0],
       preview: sampleData.slice(0, 10), // Return first 10 rows as preview
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error connecting PostgreSQL:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to connect to PostgreSQL database";
     return NextResponse.json(
       { 
         success: false, 
-        error: error.message || "Failed to connect to PostgreSQL database" 
+        error: errorMessage
       },
       { status: 500 }
     );

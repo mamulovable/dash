@@ -29,6 +29,7 @@ export default function DashboardDetailPage() {
     if (dashboardId) {
       fetchDashboard();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId]);
 
   const fetchDashboard = async () => {

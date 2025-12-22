@@ -2,7 +2,6 @@ import { Zap, RefreshCw, Download, Maximize, Link as LinkIcon } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 interface MessageBubbleProps {
   isUser: boolean;

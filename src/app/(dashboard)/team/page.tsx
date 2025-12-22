@@ -215,7 +215,7 @@ export default function TeamPage() {
             <CardHeader>
               <CardTitle>No Team</CardTitle>
               <CardDescription>
-                You're not part of any team yet. Create a new team to get started.
+                You&apos;re not part of any team yet. Create a new team to get started.
               </CardDescription>
             </CardHeader>
             <CardContent>
