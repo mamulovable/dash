@@ -5,7 +5,7 @@ export async function GET() {
   try {
     // Check database connection
     const sql = getSql();
-    const dbResult = await sql`SELECT 1 as ok`;
+    const dbResult = await sql`SELECT 1 as ok` as Array<{ ok: number }>;
     const dbOk = dbResult[0]?.ok === 1;
 
     return NextResponse.json({
