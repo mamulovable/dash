@@ -144,7 +144,7 @@ export function QueryTable({ queries, onRefresh }: QueryTableProps) {
         </TableHeader>
         <TableBody>
           {queries.map((query) => {
-            const queryObj = query as Record<string, unknown>;
+            const queryObj = query as unknown as Record<string, unknown>;
             const dataSourceName = (queryObj.data_source_name || queryObj.data_source_type || "Unknown") as string;
             const isFavorite = favorites.has(query.id) || query.is_favorite;
             
