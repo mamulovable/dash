@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
         const responseObj = responseData as Record<string, unknown>;
         const data = (responseObj.data || responseObj.results || responseObj.items || []) as unknown[];
         if (Array.isArray(data)) {
-          sampleData = data;
+          sampleData = data as Record<string, unknown>[];
         } else {
           // Single object, wrap in array
           sampleData = [responseData as Record<string, unknown>];
