@@ -74,12 +74,12 @@ export default function DataSourcesPage() {
           }
           
           return {
-            id: ds.id,
-            name: ds.name,
-            type: formatType(ds.type),
-            status: ds.status || "connected",
-            lastSynced: formatTimeAgo(ds.last_synced_at),
-            rows: `${(ds.row_count || 0).toLocaleString()} rows`,
+            id: String(ds.id || ""),
+            name: String(ds.name || ""),
+            type: formatType(String(ds.type || "")),
+            status: (String(ds.status || "connected") as "connected" | "syncing" | "error"),
+            lastSynced: formatTimeAgo(ds.last_synced_at as Date | string | null),
+            rows: `${(Number(ds.row_count) || 0).toLocaleString()} rows`,
             columns: `${selectedCols.length} columns selected`,
           };
         });
