@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { sql } from "@/lib/db";
+import { getSql } from "@/lib/db";
 
 export async function GET() {
   try {
     // Check database connection
+    const sql = getSql();
     const dbResult = await sql`SELECT 1 as ok`;
     const dbOk = dbResult[0]?.ok === 1;
 

@@ -3,10 +3,21 @@ import { neon, neonConfig } from "@neondatabase/serverless";
 // Configure Neon for serverless environments
 neonConfig.fetchConnectionCache = true;
 
-// Create SQL client
-const sql = neon(process.env.DATABASE_URL!);
+// Lazy initialization of SQL client to avoid build-time errors
+let sqlInstance: ReturnType<typeof neon> | null = null;
 
-export { sql };
+function getSql() {
+  if (!sqlInstance) {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error("DATABASE_URL environment variable is not set");
+    }
+    sqlInstance = neon(databaseUrl);
+  }
+  return sqlInstance;
+}
+
+export { getSql };
 
 // Helper function to run queries with parameters
 // Converts PostgreSQL parameterized queries ($1, $2, etc.) to Neon template literals
@@ -15,6 +26,7 @@ export async function query<T>(
   params: unknown[] = []
 ): Promise<T[]> {
   try {
+    const sql = getSql();
     // Check if sql has a query method for parameterized queries
     const sqlObj = sql as unknown as { query?: (text: string, params: unknown[]) => Promise<T[]>; unsafe?: (text: string) => Promise<T[]> };
     if (typeof sqlObj.query === 'function') {
