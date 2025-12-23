@@ -3,9 +3,12 @@
 import { useState, useEffect } from "react";
 import { C1Chat } from "@thesysai/genui-sdk";
 import "@crayonai/react-ui/styles/index.css";
+import { Database } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { SamplePrompts } from "@/components/chat/SamplePrompts";
+import { DataSourceSelectionModal } from "@/components/chat/DataSourceSelectionModal";
 import { DataSource } from "@/types";
 
 export default function ChatPage() {
@@ -15,10 +18,18 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [samplePrompts, setSamplePrompts] = useState<string[]>([]);
   const [promptsLoading, setPromptsLoading] = useState(false);
+  const [showSelectionModal, setShowSelectionModal] = useState(false);
 
   useEffect(() => {
     fetchDataSources();
   }, []);
+
+  useEffect(() => {
+    // Show modal if no data source is selected and we have data sources loaded
+    if (!loading && !selectedDataSourceId && dataSources.length > 0) {
+      setShowSelectionModal(true);
+    }
+  }, [loading, selectedDataSourceId, dataSources.length]);
 
   const fetchDataSources = async () => {
     try {
@@ -28,12 +39,7 @@ export default function ChatPage() {
 
       if (result.success) {
         setDataSources(result.data || []);
-        // Auto-select first data source if available
-        if (result.data && result.data.length > 0) {
-          const first = result.data[0];
-          setSelectedDataSourceId(first.id);
-          setSelectedDataSourceName(first.name);
-        }
+        // Don't auto-select - let user choose explicitly
       }
     } catch (error) {
       console.error("Error fetching data sources:", error);
@@ -45,6 +51,7 @@ export default function ChatPage() {
   const handleDataSourceSelect = async (id: string, name: string) => {
     setSelectedDataSourceId(id);
     setSelectedDataSourceName(name);
+    setShowSelectionModal(false); // Close modal when source is selected
     
     // Fetch sample prompts for this data source
     if (id) {
@@ -67,6 +74,10 @@ export default function ChatPage() {
     } else {
       setSamplePrompts([]);
     }
+  };
+
+  const handleChangeDataSource = () => {
+    setShowSelectionModal(true);
   };
   
   useEffect(() => {
@@ -97,6 +108,14 @@ export default function ChatPage() {
 
   return (
     <DashboardLayout breadcrumbs={[{ label: "Chat" }]}>
+      {/* Data Source Selection Modal */}
+      <DataSourceSelectionModal
+        open={showSelectionModal}
+        dataSources={dataSources}
+        loading={loading}
+        onSelect={handleDataSourceSelect}
+      />
+
       <div className="flex h-[calc(100vh-8rem)] -mx-6 -mb-6">
         {/* Chat Sidebar - Data Sources & Templates */}
         <ChatSidebar 
@@ -111,11 +130,19 @@ export default function ChatPage() {
           {/* Data source header */}
           {selectedDataSourceId ? (
             <div className="px-6 py-3 border-b bg-indigo-50/50 dark:bg-indigo-950/30 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Querying: </span>
-                <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                  {selectedDataSourceName}
-                </span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Querying: </span>
+                  <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                    {selectedDataSourceName}
+                  </span>
+                </div>
+                <button
+                  onClick={handleChangeDataSource}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  Change source
+                </button>
               </div>
             </div>
           ) : (
@@ -225,17 +252,29 @@ export default function ChatPage() {
                 />
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center max-w-md">
-                  <p className="text-muted-foreground mb-4">Select a data source from the sidebar to start chatting</p>
-                  {dataSources.length === 0 && !loading && (
-                    <a
-                      href="/data-sources"
-                      className="text-indigo-600 dark:text-indigo-400 hover:underline text-sm"
-                    >
-                      Connect your first data source →
-                    </a>
-                  )}
+              <div className="flex items-center justify-center h-full bg-muted/30">
+                <div className="text-center max-w-md px-6">
+                  <div className="mb-6">
+                    <Database className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">No Data Source Selected</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Select a data source to start asking questions and generating insights from your data.
+                    </p>
+                    {dataSources.length === 0 && !loading ? (
+                      <a href="/data-sources">
+                        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                          Connect Your First Data Source
+                        </Button>
+                      </a>
+                    ) : (
+                      <Button
+                        onClick={() => setShowSelectionModal(true)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                      >
+                        Select Data Source
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
