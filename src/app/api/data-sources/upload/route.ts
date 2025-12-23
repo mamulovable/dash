@@ -120,7 +120,6 @@ export async function POST(req: NextRequest) {
     // This is a final connection request - create data source
     // On Vercel, we can't write to filesystem, so store CSV data in database
     const fileId = uuidv4();
-    const fileName = `${fileId}-${file.name}`;
     
     // Store CSV content as base64 for retrieval later
     const csvContent = await file.text();
