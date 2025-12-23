@@ -59,16 +59,18 @@ export async function processDataQuery(
   const categoricalColumns = dataSourceAnalysis?.categoricalColumns || [];
 
   // Include actual sample data in the prompt if available
+  // Use more data (up to 100 rows) to give Gemini better context
+  const maxSampleRows = Math.min(sampleData.length, 100);
   const sampleDataSection = sampleData.length > 0
-    ? `\n\nActual sample data from the data source (first ${Math.min(sampleData.length, 20)} rows):
-${JSON.stringify(sampleData.slice(0, 20), null, 2)}
+    ? `\n\nActual sample data from the data source (${maxSampleRows} rows out of ${sampleData.length} total):
+${JSON.stringify(sampleData.slice(0, maxSampleRows), null, 2)}
 
-Use this ACTUAL data to generate your response. If the user asks for specific values, use the real data from above.`
+Use this ACTUAL data to generate your response. Process and aggregate the real data based on the user's query. If the user asks for specific values, calculations, or aggregations, use the real data from above.`
     : `\n\nNote: No sample data provided. Generate realistic data based on the schema.`;
 
-  const systemPrompt = `You are a data analyst assistant specialized in extracting ONLY the essential data needed for UI generation.
+  const systemPrompt = `You are a business intelligence data analyst assistant. Your job is to process REAL data from the selected data source and generate visualizations.
 
-Given this data schema:
+Given this data schema (ALL ${allColumns.length} columns available):
 ${JSON.stringify(schema, null, 2)}
 
 All available columns: ${allColumns.join(", ")}
@@ -78,13 +80,25 @@ Categorical columns: ${categoricalColumns.join(", ") || "None"}${sampleDataSecti
 
 User query: "${userPrompt}"
 
+CRITICAL INSTRUCTIONS:
+- You have access to ALL ${allColumns.length} columns from the data source
+- The user selected this specific data source, so use ALL its data
+- If sample data is provided above, PROCESS THE ACTUAL DATA VALUES
+- Perform real aggregations, calculations, and filtering on the actual data
+- Do NOT generate fake or mock data - use the real data provided
+- If the query asks for "total customers by plan type", actually count/group the real data
+- If the query asks for "top 10", actually sort and get the top 10 from real data
+
 Analyze the query and determine:
-1. What specific columns are needed (ONLY the ones mentioned or required for the visualization)
+1. What specific columns are needed (can be ANY columns from the ${allColumns.length} available)
 2. What aggregation/grouping is needed (e.g., count by plan_type, sum by category)
 3. What visualization type is best suited
-4. Generate a MINIMAL dataset (max 50 rows) with ONLY the required columns
+4. Process the ACTUAL data and return results (max 50 rows for display, but process all available data)
 
-IMPORTANT: If sample data is provided above, USE THE ACTUAL DATA VALUES. Process and aggregate the real data based on the user's query. Don't generate fake data if real data is available.
+IMPORTANT: 
+- Process the REAL data provided above
+- Perform actual calculations, aggregations, and filtering
+- Return results based on the actual data, not mock data
 
 Respond with a JSON object containing:
 1. "requiredColumns": Array of ONLY the column names needed for this query (e.g., ["plan_type", "customer_count"])

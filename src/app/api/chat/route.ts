@@ -145,9 +145,10 @@ export async function POST(req: NextRequest) {
                 if (csvData.length === 0) {
                   console.warn("CSV data is empty after parsing");
                 } else {
-                  // Use first 50 rows as sample for analysis
-                  sampleData = csvData.slice(0, 50);
-                  console.log(`Loaded ${sampleData.length} rows from CSV data source for analysis`);
+                  // Use ALL CSV data, not just first 50 rows
+                  // This ensures we have access to all data from the selected data source
+                  sampleData = csvData; // Use all rows, not just first 50
+                  console.log(`Loaded ALL ${sampleData.length} rows from CSV data source for analysis`);
                 }
               } else {
                 console.warn("No csv_content found in data source config. Config keys:", Object.keys(config));

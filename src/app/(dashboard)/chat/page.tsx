@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { C1Chat } from "@thesysai/genui-sdk";
 import "@crayonai/react-ui/styles/index.css";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -15,6 +15,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [samplePrompts, setSamplePrompts] = useState<string[]>([]);
   const [promptsLoading, setPromptsLoading] = useState(false);
+  const chatInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     fetchDataSources();
@@ -130,16 +131,87 @@ export default function ChatPage() {
               prompts={samplePrompts}
               loading={promptsLoading}
               onPromptSelect={(prompt) => {
-                // C1Chat will handle the message through its input
-                // We'll use a ref or direct DOM manipulation if needed
-                // For now, we'll show the prompt in the input field
-                const chatInput = document.querySelector('textarea[placeholder*="message"], input[placeholder*="message"]') as HTMLTextAreaElement | HTMLInputElement;
-                if (chatInput) {
-                  chatInput.value = prompt;
-                  chatInput.focus();
-                  // Trigger input event to update C1Chat state
-                  chatInput.dispatchEvent(new Event('input', { bubbles: true }));
-                }
+                // Find C1Chat's input and send button, then simulate user interaction
+                const findAndSend = () => {
+                  // Find the textarea input
+                  const chatInput = document.querySelector('textarea') as HTMLTextAreaElement;
+                  
+                  if (chatInput) {
+                    // Set the value
+                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                      window.HTMLTextAreaElement.prototype,
+                      'value'
+                    )?.set;
+                    
+                    if (nativeInputValueSetter) {
+                      nativeInputValueSetter.call(chatInput, prompt);
+                    } else {
+                      chatInput.value = prompt;
+                    }
+                    
+                    // Trigger React's onChange event
+                    const inputEvent = new Event('input', { bubbles: true });
+                    chatInput.dispatchEvent(inputEvent);
+                    
+                    // Also trigger change event
+                    const changeEvent = new Event('change', { bubbles: true });
+                    chatInput.dispatchEvent(changeEvent);
+                    
+                    chatInput.focus();
+                    
+                    // Wait a bit then try to submit
+                    setTimeout(() => {
+                      // Try to find and click send button
+                      const sendButtons = Array.from(document.querySelectorAll('button')).filter(btn => {
+                        const text = btn.textContent?.toLowerCase() || '';
+                        const ariaLabel = btn.getAttribute('aria-label')?.toLowerCase() || '';
+                        return (
+                          text.includes('send') ||
+                          ariaLabel.includes('send') ||
+                          btn.type === 'submit' ||
+                          btn.querySelector('svg') !== null
+                        );
+                      });
+                      
+                      // Try clicking the most likely send button
+                      if (sendButtons.length > 0) {
+                        const sendButton = sendButtons[sendButtons.length - 1] as HTMLButtonElement;
+                        if (!sendButton.disabled) {
+                          sendButton.click();
+                          return;
+                        }
+                      }
+                      
+                      // Fallback: simulate Enter key press
+                      const enterEvent = new KeyboardEvent('keydown', {
+                        key: 'Enter',
+                        code: 'Enter',
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true,
+                        cancelable: true,
+                      });
+                      chatInput.dispatchEvent(enterEvent);
+                      
+                      // Also try keyup
+                      const enterUpEvent = new KeyboardEvent('keyup', {
+                        key: 'Enter',
+                        code: 'Enter',
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true,
+                        cancelable: true,
+                      });
+                      chatInput.dispatchEvent(enterUpEvent);
+                    }, 200);
+                  } else {
+                    // Retry after a short delay if input not found yet
+                    setTimeout(findAndSend, 100);
+                  }
+                };
+                
+                // Start the process
+                findAndSend();
               }}
             />
           )}
