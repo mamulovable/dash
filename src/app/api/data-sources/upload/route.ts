@@ -78,6 +78,15 @@ export async function POST(req: NextRequest) {
     // Generate schema from data
     const schema = await generateSchemaFromData(data);
     
+    // Validate schema was generated
+    if (Object.keys(schema).length === 0) {
+      console.error("Failed to generate schema from CSV data");
+      return NextResponse.json(
+        { success: false, error: "Failed to generate schema from CSV. Please check your CSV file format." },
+        { status: 400 }
+      );
+    }
+    
     // Parse selected columns if provided (for final connection)
     let finalSelectedColumns: string[] = [];
     if (selectedColumns) {
@@ -124,6 +133,10 @@ export async function POST(req: NextRequest) {
     // Store CSV content as base64 for retrieval later
     const csvContent = await file.text();
     const csvBase64 = Buffer.from(csvContent).toString("base64");
+    
+    console.log(`CSV upload: File ${file.name}, ${data.length} rows, ${columns.length} columns`);
+    console.log(`Schema keys: ${Object.keys(schema).length}`);
+    console.log(`CSV content length: ${csvContent.length}, Base64 length: ${csvBase64.length}`);
     
     // Use Gemini to analyze the data source (same as API route)
     let dataSourceAnalysis = null;
@@ -209,6 +222,16 @@ export async function POST(req: NextRequest) {
         data.length,
       ]
     );
+    
+    // Verify what was stored
+    const storedSchema = typeof result[0].schema_info === 'string' 
+      ? JSON.parse(result[0].schema_info) 
+      : result[0].schema_info;
+    const storedConfig = typeof result[0].config === 'string' 
+      ? JSON.parse(result[0].config) 
+      : result[0].config;
+    console.log(`Stored schema_info has ${Object.keys(storedSchema).length} columns`);
+    console.log(`Stored config has csv_content: ${!!storedConfig.csv_content}`);
     
     return NextResponse.json({
       success: true,

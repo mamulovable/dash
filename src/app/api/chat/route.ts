@@ -86,6 +86,11 @@ export async function POST(req: NextRequest) {
           ? JSON.parse(dsResult.schema_info) 
           : dsResult.schema_info,
       } as DataSource;
+      
+      // Debug logging
+      console.log(`Data source loaded: ${dataSource.name}, type: ${dataSource.type}`);
+      console.log(`Schema info keys: ${Object.keys(dataSource.schema_info || {}).length}`);
+      console.log(`Config keys: ${Object.keys(dataSource.config || {}).join(", ")}`);
     }
     
     if (dataSource) {
@@ -119,17 +124,35 @@ export async function POST(req: NextRequest) {
               const csvBase64 = config.csv_content as string;
               
               if (csvBase64) {
+                console.log(`Found csv_content in config, length: ${csvBase64.length}`);
                 // Decode base64 CSV content
                 const csvContent = Buffer.from(csvBase64, "base64").toString("utf-8");
+                console.log(`Decoded CSV content length: ${csvContent.length}`);
+                
                 const parseResult = Papa.parse(csvContent, {
                   header: true,
                   skipEmptyLines: true,
                   dynamicTyping: true,
                 });
                 
+                if (parseResult.errors.length > 0) {
+                  console.error("CSV parsing errors:", parseResult.errors);
+                }
+                
                 const csvData = parseResult.data as Record<string, unknown>[];
-                // Use first 50 rows as sample for analysis
-                sampleData = csvData.slice(0, 50);
+                console.log(`Parsed CSV data: ${csvData.length} rows, columns: ${parseResult.meta.fields?.join(", ") || "none"}`);
+                
+                if (csvData.length === 0) {
+                  console.warn("CSV data is empty after parsing");
+                } else {
+                  // Use first 50 rows as sample for analysis
+                  sampleData = csvData.slice(0, 50);
+                  console.log(`Loaded ${sampleData.length} rows from CSV data source for analysis`);
+                }
+              } else {
+                console.warn("No csv_content found in data source config. Config keys:", Object.keys(config));
+                // For older data sources without csv_content, we'll rely on schema_info
+                // which should still be available
               }
             } catch (error) {
               console.error("Error reading CSV data from database:", error);
@@ -141,13 +164,36 @@ export async function POST(req: NextRequest) {
             sampleData = [];
           }
           
+          // Validate we have at least schema or sample data
+          const schemaInfo = dataSource.schema_info || {};
+          const hasSchema = Object.keys(schemaInfo).length > 0;
+          const hasSampleData = sampleData.length > 0;
+          
+          if (!hasSchema && !hasSampleData) {
+            console.error("No schema or sample data available for data source:", dataSource.id);
+            // Return early with error instead of throwing
+            return NextResponse.json(
+              {
+                error: "No data available",
+                message: "The data source has no schema or data available. Please re-upload the data source.",
+              },
+              { status: 400 }
+            );
+          }
+          
+          console.log(`Processing query with schema (${Object.keys(schemaInfo).length} columns) and ${sampleData.length} sample rows`);
+          
           // First, get the query result (this is the critical path)
           geminiResult = await processDataQuery(
-            dataSource.schema_info || {},
+            schemaInfo,
             userQuery,
             sampleData, // Pass actual sample data
             storedAnalysis || undefined
           );
+          
+          if (!geminiResult || !geminiResult.data || geminiResult.data.length === 0) {
+            console.warn("Gemini returned empty result");
+          }
           
           // Generate explanation in parallel with timeout - don't block if it's slow
           if (geminiResult) {
@@ -182,7 +228,8 @@ export async function POST(req: NextRequest) {
       }
       
       // Build MINIMAL data context for C1 - only what's needed for UI generation
-      if (geminiResult && dataSource) {
+      // Only build context if we have a valid result with data
+      if (geminiResult && geminiResult.data && geminiResult.data.length > 0 && dataSource) {
         // Capture dataSource in const for TypeScript narrowing
         const ds = dataSource;
         // Use ONLY the required columns from Gemini analysis
