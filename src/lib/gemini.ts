@@ -88,17 +88,20 @@ CRITICAL INSTRUCTIONS:
 - Do NOT generate fake or mock data - use the real data provided
 - If the query asks for "total customers by plan type", actually count/group the real data
 - If the query asks for "top 10", actually sort and get the top 10 from real data
+- If the query asks to "summarize", "analyze", or "describe" the data, provide a comprehensive summary with key statistics, insights, and visualizations
+- For summary queries, include: total rows, key metrics, distribution insights, and top categories/values
 
 Analyze the query and determine:
 1. What specific columns are needed (can be ANY columns from the ${allColumns.length} available)
 2. What aggregation/grouping is needed (e.g., count by plan_type, sum by category)
-3. What visualization type is best suited
+3. What visualization type is best suited (for summaries, consider "mixed" or "table" with KPIs)
 4. Process the ACTUAL data and return results (max 50 rows for display, but process all available data)
 
 IMPORTANT: 
 - Process the REAL data provided above
 - Perform actual calculations, aggregations, and filtering
 - Return results based on the actual data, not mock data
+- For summary queries, provide comprehensive insights including counts, averages, distributions, and key patterns
 
 Respond with a JSON object containing:
 1. "requiredColumns": Array of ONLY the column names needed for this query (e.g., ["plan_type", "customer_count"])

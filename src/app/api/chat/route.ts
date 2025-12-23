@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   const messageStore = getMessageStore(threadId);
   
   // Early return if no actual query content
-  const userQuery = typeof prompt.content === "string" ? prompt.content.trim() : JSON.stringify(prompt.content);
+  let userQuery = typeof prompt.content === "string" ? prompt.content.trim() : JSON.stringify(prompt.content);
   if (!userQuery || userQuery.length === 0) {
     // Just return empty response for empty queries
     messageStore.addMessage(prompt);
@@ -67,6 +67,28 @@ export async function POST(req: NextRequest) {
   let geminiResult: Awaited<ReturnType<typeof processDataQuery>> | null = null;
   let queryExplanation: Awaited<ReturnType<typeof generateQueryExplanation>> | null = null;
   let isCached = false;
+  
+  // Normalize query to reference the data source explicitly
+  // This helps Gemini understand that queries like "summarize this document" refer to the selected data source
+  const normalizeQuery = (query: string, dataSourceName?: string): string => {
+    if (!dataSourceName) return query;
+    
+    let normalized = query;
+    
+    // Replace generic references with explicit data source name
+    normalized = normalized.replace(
+      /\b(this document|the document|this file|the file|this data|the data|this source|the source|this dataset|the dataset)\b/gi,
+      `the ${dataSourceName} data`
+    );
+    
+    // Replace action verbs followed by "it/this/that" with explicit reference
+    normalized = normalized.replace(
+      /\b(summarize|analyze|explain|describe|show|display|visualize)\s+(it|this|that)\b/gi,
+      (match, verb) => `${verb} the ${dataSourceName} data`
+    );
+    
+    return normalized;
+  };
   
   if (dataSourceId && user) {
     const dsResult = await queryOne<Record<string, unknown>>(
@@ -87,8 +109,13 @@ export async function POST(req: NextRequest) {
           : dsResult.schema_info,
       } as DataSource;
       
+      // Normalize the query to explicitly reference the data source
+      userQuery = normalizeQuery(userQuery, dataSource.name);
+      
       // Debug logging
       console.log(`Data source loaded: ${dataSource.name}, type: ${dataSource.type}`);
+      console.log(`Original query: "${typeof prompt.content === "string" ? prompt.content.trim() : JSON.stringify(prompt.content)}"`);
+      console.log(`Normalized query: "${userQuery}"`);
       console.log(`Schema info keys: ${Object.keys(dataSource.schema_info || {}).length}`);
       console.log(`Config keys: ${Object.keys(dataSource.config || {}).join(", ")}`);
     }
@@ -282,6 +309,13 @@ export async function POST(req: NextRequest) {
         
         dataContext = `
 You are DashMind AI, a business intelligence assistant generating interactive UI components.
+
+**IMPORTANT CONTEXT:**
+- The user has selected the data source "${ds.name}" (${ds.type})
+- ALL user queries refer to THIS selected data source
+- When the user says "summarize this document", "analyze the data", "show me insights", etc., they mean the "${ds.name}" data source
+- Do NOT generate generic document upload UIs or ask for file uploads
+- Generate visualizations and insights based on the data provided below
 
 **User Request:** ${userQuery}${explanationText}
 
