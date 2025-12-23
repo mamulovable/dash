@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { C1Chat } from "@thesysai/genui-sdk";
 import "@crayonai/react-ui/styles/index.css";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -15,7 +15,6 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [samplePrompts, setSamplePrompts] = useState<string[]>([]);
   const [promptsLoading, setPromptsLoading] = useState(false);
-  const chatInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     fetchDataSources();
