@@ -57,6 +57,14 @@ export async function processDataQuery(
   const numericColumns = dataSourceAnalysis?.numericColumns || [];
   const categoricalColumns = dataSourceAnalysis?.categoricalColumns || [];
 
+  // Include actual sample data in the prompt if available
+  const sampleDataSection = sampleData.length > 0
+    ? `\n\nActual sample data from the data source (first ${Math.min(sampleData.length, 20)} rows):
+${JSON.stringify(sampleData.slice(0, 20), null, 2)}
+
+Use this ACTUAL data to generate your response. If the user asks for specific values, use the real data from above.`
+    : `\n\nNote: No sample data provided. Generate realistic data based on the schema.`;
+
   const systemPrompt = `You are a data analyst assistant specialized in extracting ONLY the essential data needed for UI generation.
 
 Given this data schema:
@@ -64,7 +72,7 @@ ${JSON.stringify(schema, null, 2)}
 
 Key columns available: ${keyColumns.join(", ")}
 Numeric columns: ${numericColumns.join(", ") || "None"}
-Categorical columns: ${categoricalColumns.join(", ") || "None"}
+Categorical columns: ${categoricalColumns.join(", ") || "None"}${sampleDataSection}
 
 User query: "${userPrompt}"
 
@@ -73,6 +81,8 @@ Analyze the query and determine:
 2. What aggregation/grouping is needed (e.g., count by plan_type, sum by category)
 3. What visualization type is best suited
 4. Generate a MINIMAL dataset (max 50 rows) with ONLY the required columns
+
+IMPORTANT: If sample data is provided above, USE THE ACTUAL DATA VALUES. Process and aggregate the real data based on the user's query. Don't generate fake data if real data is available.`
 
 Respond with a JSON object containing:
 1. "requiredColumns": Array of ONLY the column names needed for this query (e.g., ["plan_type", "customer_count"])

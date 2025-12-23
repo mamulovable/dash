@@ -105,6 +105,13 @@ export default function DataSourcesPage() {
     }
   };
 
+  const handleDelete = (id: string) => {
+    // Remove from local state immediately for better UX
+    setDataSources(prev => prev.filter(ds => ds.id !== id));
+    // Refresh from server to get updated count
+    fetchDataSources();
+  };
+
   return (
     <DashboardLayout breadcrumbs={[{ label: "Data Sources" }]}>
       <div className="space-y-6">
@@ -168,7 +175,7 @@ export default function DataSourcesPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {dataSources.map((source) => (
-              <DataSourceCard key={source.id} {...source} />
+              <DataSourceCard key={source.id} {...source} onDelete={handleDelete} />
             ))}
           </div>
         )}

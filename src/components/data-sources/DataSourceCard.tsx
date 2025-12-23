@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 interface DataSourceCardProps {
+  id: string;
   name: string;
   type: "CSV" | "Google Sheets" | "PostgreSQL" | "MySQL" | "API";
   status: "connected" | "syncing" | "error";
@@ -27,6 +28,7 @@ interface DataSourceCardProps {
   columns: string;
   preview?: Array<Record<string, string>>;
   errorMessage?: string;
+  onDelete?: (id: string) => void;
 }
 
 const typeIcons = {
@@ -38,6 +40,7 @@ const typeIcons = {
 };
 
 export function DataSourceCard({
+  id,
   name,
   type,
   status,
@@ -46,7 +49,30 @@ export function DataSourceCard({
   columns,
   preview,
   errorMessage,
+  onDelete,
 }: DataSourceCardProps) {
+  const handleDelete = async () => {
+    if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/data-sources/${id}`, {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        onDelete?.(id);
+      } else {
+        alert(result.error || "Failed to delete data source");
+      }
+    } catch (error) {
+      console.error("Error deleting data source:", error);
+      alert("Failed to delete data source");
+    }
+  };
   const Icon = typeIcons[type] || Database;
 
   return (
@@ -148,7 +174,7 @@ export function DataSourceCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem>Edit</DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem className="text-destructive" onClick={handleDelete}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>
