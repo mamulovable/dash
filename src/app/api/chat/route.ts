@@ -183,9 +183,14 @@ export async function POST(req: NextRequest) {
           
           console.log(`Processing query with schema (${Object.keys(schemaInfo).length} columns) and ${sampleData.length} sample rows`);
           
+          // Use ALL columns from schema_info, not just selected_columns
+          // selected_columns is just for UI display, we should use all available data
+          const allSchemaColumns = Object.keys(schemaInfo);
+          console.log(`Using ALL ${allSchemaColumns.length} columns from schema (not limited to selected columns)`);
+          
           // First, get the query result (this is the critical path)
           geminiResult = await processDataQuery(
-            schemaInfo,
+            schemaInfo, // Use full schema with all columns
             userQuery,
             sampleData, // Pass actual sample data
             storedAnalysis || undefined
@@ -232,9 +237,14 @@ export async function POST(req: NextRequest) {
       if (geminiResult && geminiResult.data && geminiResult.data.length > 0 && dataSource) {
         // Capture dataSource in const for TypeScript narrowing
         const ds = dataSource;
-        // Use ONLY the required columns from Gemini analysis
+        // Use columns determined by Gemini based on the query
+        // Gemini analyzes the query and determines which columns are needed
+        // We use ALL available columns in schema_info, not just selected_columns
+        const allAvailableColumns = Object.keys(ds.schema_info || {});
         const requiredColumns = geminiResult.requiredColumns || 
-          (storedAnalysis?.keyColumns || Object.keys(ds.schema_info || {}).slice(0, 10));
+          (storedAnalysis?.keyColumns || allAvailableColumns.slice(0, 10));
+        
+        console.log(`Query requires ${requiredColumns.length} columns from ${allAvailableColumns.length} total available columns`);
         
         // Extract schema for ONLY required columns
         const minimalSchema = requiredColumns.reduce((acc: Record<string, string>, col: string) => {

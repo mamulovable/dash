@@ -52,8 +52,9 @@ export async function processDataQuery(
 
   const userPrompt = typeof prompt === "string" ? prompt : JSON.stringify(prompt);
   
-  // Build context about available columns
-  const keyColumns = dataSourceAnalysis?.keyColumns || Object.keys(schema);
+  // Build context about available columns - use ALL columns, not just key columns
+  const allColumns = Object.keys(schema);
+  const keyColumns = dataSourceAnalysis?.keyColumns || allColumns;
   const numericColumns = dataSourceAnalysis?.numericColumns || [];
   const categoricalColumns = dataSourceAnalysis?.categoricalColumns || [];
 
@@ -70,7 +71,8 @@ Use this ACTUAL data to generate your response. If the user asks for specific va
 Given this data schema:
 ${JSON.stringify(schema, null, 2)}
 
-Key columns available: ${keyColumns.join(", ")}
+All available columns: ${allColumns.join(", ")}
+Key columns: ${keyColumns.join(", ")}
 Numeric columns: ${numericColumns.join(", ") || "None"}
 Categorical columns: ${categoricalColumns.join(", ") || "None"}${sampleDataSection}
 
@@ -333,6 +335,89 @@ IMPORTANT: Return ONLY valid JSON, no markdown formatting.`;
   }
 }
 
+/**
+ * Generates sample business intelligence prompts based on data source analysis.
+ * These prompts help users understand what questions they can ask about their data.
+ */
+export async function generateSamplePrompts(
+  dataSourceAnalysis: DataSourceAnalysis,
+  dataSourceName: string
+): Promise<string[]> {
+  const client = getGeminiClient();
+  const model = client.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+
+  const prompt = `You are a business intelligence assistant. Generate 5-7 sample questions that users can ask about this data source.
+
+Data Source: ${dataSourceName}
+Summary: ${dataSourceAnalysis.summary}
+Data Type: ${dataSourceAnalysis.dataType}
+Key Columns: ${dataSourceAnalysis.keyColumns.join(", ")}
+Numeric Columns: ${dataSourceAnalysis.numericColumns.join(", ") || "None"}
+Categorical Columns: ${dataSourceAnalysis.categoricalColumns.join(", ") || "None"}
+Has Time Dimension: ${dataSourceAnalysis.hasTimeDimension ? `Yes (${dataSourceAnalysis.timeColumn})` : "No"}
+
+Generate business intelligence questions that:
+1. Are relevant to the data structure and columns
+2. Focus on business insights (trends, comparisons, aggregations, KPIs)
+3. Use actual column names from the data
+4. Are practical and actionable
+5. Cover different types of analysis (summaries, trends, comparisons, top/bottom items)
+
+Examples of good questions:
+- "Show me total revenue by month"
+- "What are the top 10 customers by sales?"
+- "Compare sales performance across different regions"
+- "Show me the trend of user signups over time"
+- "What is the average order value by product category?"
+
+Return ONLY a JSON array of strings, no markdown formatting. Example: ["question 1", "question 2", "question 3"]`;
+
+  try {
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 500,
+      },
+    });
+    
+    const responseText = result.response.text();
+    const cleanedResponse = responseText
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+    
+    const prompts = JSON.parse(cleanedResponse) as string[];
+    return prompts.slice(0, 7); // Limit to 7 prompts
+  } catch (error) {
+    console.error("Error generating sample prompts:", error);
+    
+    // Fallback: generate basic prompts based on analysis
+    const prompts: string[] = [];
+    
+    if (dataSourceAnalysis.hasTimeDimension && dataSourceAnalysis.timeColumn) {
+      prompts.push(`Show me trends over time using ${dataSourceAnalysis.timeColumn}`);
+    }
+    
+    if (dataSourceAnalysis.numericColumns.length > 0) {
+      const numCol = dataSourceAnalysis.numericColumns[0];
+      prompts.push(`What is the total ${numCol}?`);
+      prompts.push(`Show me the top 10 items by ${numCol}`);
+    }
+    
+    if (dataSourceAnalysis.categoricalColumns.length > 0) {
+      const catCol = dataSourceAnalysis.categoricalColumns[0];
+      prompts.push(`Show me breakdown by ${catCol}`);
+      prompts.push(`Compare metrics across different ${catCol} values`);
+    }
+    
+    prompts.push(`Give me a summary of this data`);
+    prompts.push(`What are the key insights from this data?`);
+    
+    return prompts.slice(0, 7);
+  }
+}
+
 export async function generateSchemaFromData(
   data: Record<string, unknown>[]
 ): Promise<Record<string, string>> {
@@ -364,8 +449,3 @@ export async function generateSchemaFromData(
   
   return schema;
 }
-
-
-
-
-

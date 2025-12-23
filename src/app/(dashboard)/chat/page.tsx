@@ -5,6 +5,7 @@ import { C1Chat } from "@thesysai/genui-sdk";
 import "@crayonai/react-ui/styles/index.css";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import { SamplePrompts } from "@/components/chat/SamplePrompts";
 import { DataSource } from "@/types";
 
 export default function ChatPage() {
@@ -12,6 +13,8 @@ export default function ChatPage() {
   const [selectedDataSourceName, setSelectedDataSourceName] = useState<string>("");
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
   const [loading, setLoading] = useState(true);
+  const [samplePrompts, setSamplePrompts] = useState<string[]>([]);
+  const [promptsLoading, setPromptsLoading] = useState(false);
 
   useEffect(() => {
     fetchDataSources();
@@ -39,10 +42,58 @@ export default function ChatPage() {
     }
   };
   
-  const handleDataSourceSelect = (id: string, name: string) => {
+  const handleDataSourceSelect = async (id: string, name: string) => {
     setSelectedDataSourceId(id);
     setSelectedDataSourceName(name);
+    
+    // Fetch sample prompts for this data source
+    if (id) {
+      setPromptsLoading(true);
+      try {
+        const response = await fetch(`/api/data-sources/${id}/prompts`);
+        const result = await response.json();
+        
+        if (result.success && result.prompts) {
+          setSamplePrompts(result.prompts);
+        } else {
+          setSamplePrompts([]);
+        }
+      } catch (error) {
+        console.error("Error fetching sample prompts:", error);
+        setSamplePrompts([]);
+      } finally {
+        setPromptsLoading(false);
+      }
+    } else {
+      setSamplePrompts([]);
+    }
   };
+  
+  useEffect(() => {
+    // Fetch prompts when data source changes
+    if (selectedDataSourceId && selectedDataSourceName) {
+      // Fetch sample prompts for this data source
+      setPromptsLoading(true);
+      fetch(`/api/data-sources/${selectedDataSourceId}/prompts`)
+        .then(res => res.json())
+        .then(result => {
+          if (result.success && result.prompts) {
+            setSamplePrompts(result.prompts);
+          } else {
+            setSamplePrompts([]);
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching sample prompts:", error);
+          setSamplePrompts([]);
+        })
+        .finally(() => {
+          setPromptsLoading(false);
+        });
+    } else {
+      setSamplePrompts([]);
+    }
+  }, [selectedDataSourceId, selectedDataSourceName]);
 
   return (
     <DashboardLayout breadcrumbs={[{ label: "Chat" }]}>
@@ -71,6 +122,26 @@ export default function ChatPage() {
             <div className="px-6 py-3 border-b flex-shrink-0">
               <p className="text-sm text-muted-foreground">Select a data source to start</p>
             </div>
+          )}
+          
+          {/* Sample Prompts */}
+          {selectedDataSourceId && (
+            <SamplePrompts 
+              prompts={samplePrompts}
+              loading={promptsLoading}
+              onPromptSelect={(prompt) => {
+                // C1Chat will handle the message through its input
+                // We'll use a ref or direct DOM manipulation if needed
+                // For now, we'll show the prompt in the input field
+                const chatInput = document.querySelector('textarea[placeholder*="message"], input[placeholder*="message"]') as HTMLTextAreaElement | HTMLInputElement;
+                if (chatInput) {
+                  chatInput.value = prompt;
+                  chatInput.focus();
+                  // Trigger input event to update C1Chat state
+                  chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+              }}
+            />
           )}
           
           {/* C1 Chat Component */}
