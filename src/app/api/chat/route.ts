@@ -8,6 +8,9 @@ import { processDataQuery, generateQueryExplanation, DataSourceAnalysis } from "
 import { generateCacheKey, getFromCache, setCache } from "@/lib/redis";
 import { canMakeQuery } from "@/lib/tier-limits";
 import { DataSource } from "@/types";
+import Papa from "papaparse";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
 interface ChatRequestBody {
   prompt: DBMessage;
@@ -108,11 +111,42 @@ export async function POST(req: NextRequest) {
       } else {
         // Process with Gemini - analyze query and extract ONLY minimal data needed for UI
         try {
+          // Get sample data from data source based on type
+          let sampleData: Record<string, unknown>[] = [];
+          
+          if (dataSource.type === "csv") {
+            // Read CSV file for CSV data sources
+            try {
+              const config = dataSource.config as Record<string, unknown>;
+              const filePath = config.file_path as string;
+              
+              if (filePath) {
+                const fileContent = await readFile(filePath, "utf-8");
+                const parseResult = Papa.parse(fileContent, {
+                  header: true,
+                  skipEmptyLines: true,
+                  dynamicTyping: true,
+                });
+                
+                const csvData = parseResult.data as Record<string, unknown>[];
+                // Use first 50 rows as sample for analysis
+                sampleData = csvData.slice(0, 50);
+              }
+            } catch (error) {
+              console.error("Error reading CSV file:", error);
+              // Continue with empty sample data
+            }
+          } else if (dataSource.type === "api") {
+            // For API sources, we don't have sample data readily available
+            // The Gemini analysis from initial connection should be sufficient
+            sampleData = [];
+          }
+          
           // First, get the query result (this is the critical path)
           geminiResult = await processDataQuery(
             dataSource.schema_info || {},
             userQuery,
-            [], // Sample data would come from the data source
+            sampleData, // Pass actual sample data
             storedAnalysis || undefined
           );
           

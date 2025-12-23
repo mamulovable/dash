@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrCreateUser } from "@/lib/auth";
 import Papa from "papaparse";
-import { generateSchemaFromData } from "@/lib/gemini";
+import { generateSchemaFromData, analyzeDataSource } from "@/lib/gemini";
 import { query } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { writeFile, mkdir } from "fs/promises";
@@ -139,6 +139,42 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(filePath, buffer);
     
+    // Use Gemini to analyze the data source (same as API route)
+    let dataSourceAnalysis = null;
+    if (data.length > 0 && process.env.GEMINI_API_KEY) {
+      try {
+        console.log("Analyzing CSV data source with Gemini...");
+        dataSourceAnalysis = await analyzeDataSource(
+          data,
+          schema,
+          name || file.name.replace(".csv", "")
+        );
+        console.log("Gemini analysis completed:", {
+          keyColumns: dataSourceAnalysis.keyColumns.length,
+          dataType: dataSourceAnalysis.dataType,
+          insights: dataSourceAnalysis.insights.length,
+        });
+        
+        // Use Gemini's recommended key columns if available and within tier limits
+        const { TIER_LIMITS } = await import("@/lib/tier-limits");
+        const userTier = user.tier as keyof typeof TIER_LIMITS;
+        const maxColumns = TIER_LIMITS[userTier]?.max_columns || 10;
+        
+        if (dataSourceAnalysis.keyColumns.length > 0) {
+          const recommendedColumns = dataSourceAnalysis.keyColumns
+            .filter((col: string) => columns.includes(col))
+            .slice(0, maxColumns);
+          
+          if (recommendedColumns.length > 0) {
+            finalSelectedColumns = recommendedColumns;
+          }
+        }
+      } catch (error) {
+        console.error("Error analyzing CSV data source with Gemini:", error);
+        // Continue without analysis if Gemini fails
+      }
+    }
+    
     // Generate fingerprint for caching
     const fingerprint = uuidv4();
     
@@ -167,6 +203,18 @@ export async function POST(req: NextRequest) {
           file_url: `/uploads/${fileName}`,
           file_name: file.name,
           file_path: filePath,
+          // Store Gemini analysis in config (same as API route)
+          analysis: dataSourceAnalysis ? {
+            keyColumns: dataSourceAnalysis.keyColumns,
+            dataType: dataSourceAnalysis.dataType,
+            recommendedVisualizations: dataSourceAnalysis.recommendedVisualizations,
+            insights: dataSourceAnalysis.insights,
+            summary: dataSourceAnalysis.summary,
+            hasTimeDimension: dataSourceAnalysis.hasTimeDimension,
+            timeColumn: dataSourceAnalysis.timeColumn,
+            numericColumns: dataSourceAnalysis.numericColumns,
+            categoricalColumns: dataSourceAnalysis.categoricalColumns,
+          } : null,
         }),
         JSON.stringify(finalSelectedColumns),
         JSON.stringify(schema),
