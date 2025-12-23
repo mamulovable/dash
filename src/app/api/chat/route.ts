@@ -9,7 +9,6 @@ import { generateCacheKey, getFromCache, setCache } from "@/lib/redis";
 import { canMakeQuery } from "@/lib/tier-limits";
 import { DataSource } from "@/types";
 import Papa from "papaparse";
-import { readFile } from "fs/promises";
 
 interface ChatRequestBody {
   prompt: DBMessage;
@@ -114,14 +113,15 @@ export async function POST(req: NextRequest) {
           let sampleData: Record<string, unknown>[] = [];
           
           if (dataSource.type === "csv") {
-            // Read CSV file for CSV data sources
+            // Read CSV data from database config (stored as base64)
             try {
               const config = dataSource.config as Record<string, unknown>;
-              const filePath = config.file_path as string;
+              const csvBase64 = config.csv_content as string;
               
-              if (filePath) {
-                const fileContent = await readFile(filePath, "utf-8");
-                const parseResult = Papa.parse(fileContent, {
+              if (csvBase64) {
+                // Decode base64 CSV content
+                const csvContent = Buffer.from(csvBase64, "base64").toString("utf-8");
+                const parseResult = Papa.parse(csvContent, {
                   header: true,
                   skipEmptyLines: true,
                   dynamicTyping: true,
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
                 sampleData = csvData.slice(0, 50);
               }
             } catch (error) {
-              console.error("Error reading CSV file:", error);
+              console.error("Error reading CSV data from database:", error);
               // Continue with empty sample data
             }
           } else if (dataSource.type === "api") {

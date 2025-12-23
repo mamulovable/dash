@@ -4,18 +4,6 @@ import Papa from "papaparse";
 import { generateSchemaFromData, analyzeDataSource } from "@/lib/gemini";
 import { query } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
-
-// Ensure uploads directory exists
-const UPLOADS_DIR = join(process.cwd(), "uploads");
-
-async function ensureUploadsDir() {
-  if (!existsSync(UPLOADS_DIR)) {
-    await mkdir(UPLOADS_DIR, { recursive: true });
-  }
-}
 
 // POST /api/data-sources/upload - Upload and parse CSV
 export async function POST(req: NextRequest) {
@@ -129,15 +117,14 @@ export async function POST(req: NextRequest) {
       });
     }
     
-    // This is a final connection request - save file and create data source
-    await ensureUploadsDir();
-    
-    // Save file to uploads directory
+    // This is a final connection request - create data source
+    // On Vercel, we can't write to filesystem, so store CSV data in database
     const fileId = uuidv4();
     const fileName = `${fileId}-${file.name}`;
-    const filePath = join(UPLOADS_DIR, fileName);
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filePath, buffer);
+    
+    // Store CSV content as base64 for retrieval later
+    const csvContent = await file.text();
+    const csvBase64 = Buffer.from(csvContent).toString("base64");
     
     // Use Gemini to analyze the data source (same as API route)
     let dataSourceAnalysis = null;
@@ -200,9 +187,9 @@ export async function POST(req: NextRequest) {
         name || file.name.replace(".csv", ""),
         "csv",
         JSON.stringify({
-          file_url: `/uploads/${fileName}`,
           file_name: file.name,
-          file_path: filePath,
+          file_id: fileId,
+          csv_content: csvBase64, // Store CSV content as base64
           // Store Gemini analysis in config (same as API route)
           analysis: dataSourceAnalysis ? {
             keyColumns: dataSourceAnalysis.keyColumns,
