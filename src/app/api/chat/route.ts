@@ -10,7 +10,6 @@ import { canMakeQuery } from "@/lib/tier-limits";
 import { DataSource } from "@/types";
 import Papa from "papaparse";
 import { readFile } from "fs/promises";
-import { join } from "path";
 
 interface ChatRequestBody {
   prompt: DBMessage;
