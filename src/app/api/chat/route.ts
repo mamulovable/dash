@@ -90,34 +90,41 @@ export async function POST(req: NextRequest) {
     return normalized;
   };
   
-  if (dataSourceId && user) {
-    const dsResult = await queryOne<Record<string, unknown>>(
-      `SELECT * FROM data_sources WHERE id = $1 AND user_id = $2`,
-      [dataSourceId, user.id]
-    );
+  if (dataSourceId) {
+    try {
+      // Handle both authenticated and unauthenticated cases
+      const query = user 
+        ? `SELECT * FROM data_sources WHERE id = $1 AND user_id = $2`
+        : `SELECT * FROM data_sources WHERE id = $1`;
+      const params = user ? [dataSourceId, user.id] : [dataSourceId];
+      const dsResult = await queryOne<Record<string, unknown>>(query, params);
     
-    if (dsResult) {
-      // Parse JSONB fields
-      dataSource = {
-        ...dsResult,
-        config: typeof dsResult.config === 'string' ? JSON.parse(dsResult.config) : dsResult.config,
-        selected_columns: typeof dsResult.selected_columns === 'string' 
-          ? JSON.parse(dsResult.selected_columns) 
-          : dsResult.selected_columns,
-        schema_info: typeof dsResult.schema_info === 'string' 
-          ? JSON.parse(dsResult.schema_info) 
-          : dsResult.schema_info,
-      } as DataSource;
-      
-      // Normalize the query to explicitly reference the data source
-      userQuery = normalizeQuery(userQuery, dataSource.name);
-      
-      // Debug logging
-      console.log(`Data source loaded: ${dataSource.name}, type: ${dataSource.type}`);
-      console.log(`Original query: "${typeof prompt.content === "string" ? prompt.content.trim() : JSON.stringify(prompt.content)}"`);
-      console.log(`Normalized query: "${userQuery}"`);
-      console.log(`Schema info keys: ${Object.keys(dataSource.schema_info || {}).length}`);
-      console.log(`Config keys: ${Object.keys(dataSource.config || {}).join(", ")}`);
+      if (dsResult) {
+        // Parse JSONB fields
+        dataSource = {
+          ...dsResult,
+          config: typeof dsResult.config === 'string' ? JSON.parse(dsResult.config) : dsResult.config,
+          selected_columns: typeof dsResult.selected_columns === 'string' 
+            ? JSON.parse(dsResult.selected_columns) 
+            : dsResult.selected_columns,
+          schema_info: typeof dsResult.schema_info === 'string' 
+            ? JSON.parse(dsResult.schema_info) 
+            : dsResult.schema_info,
+        } as DataSource;
+        
+        // Normalize the query to explicitly reference the data source
+        userQuery = normalizeQuery(userQuery, dataSource.name);
+        
+        // Debug logging
+        console.log(`Data source loaded: ${dataSource.name}, type: ${dataSource.type}`);
+        console.log(`Original query: "${typeof prompt.content === "string" ? prompt.content.trim() : JSON.stringify(prompt.content)}"`);
+        console.log(`Normalized query: "${userQuery}"`);
+        console.log(`Schema info keys: ${Object.keys(dataSource.schema_info || {}).length}`);
+        console.log(`Config keys: ${Object.keys(dataSource.config || {}).join(", ")}`);
+      }
+    } catch (error) {
+      console.error("Error loading data source:", error);
+      // Continue processing - we'll build fallback context if needed
     }
     
     if (dataSource) {
@@ -260,55 +267,81 @@ export async function POST(req: NextRequest) {
         }
       }
       
-      // Build MINIMAL data context for C1 - only what's needed for UI generation
-      // Only build context if we have a valid result with data
-      if (geminiResult && geminiResult.data && geminiResult.data.length > 0 && dataSource) {
+      // Build data context for C1 - always build context if data source exists
+      // Build full context if Gemini succeeded, fallback context if Gemini failed
+      if (dataSource) {
         // Capture dataSource in const for TypeScript narrowing
         const ds = dataSource;
-        // Use columns determined by Gemini based on the query
-        // Gemini analyzes the query and determines which columns are needed
-        // We use ALL available columns in schema_info, not just selected_columns
-        const allAvailableColumns = Object.keys(ds.schema_info || {});
-        const requiredColumns = geminiResult.requiredColumns || 
-          (storedAnalysis?.keyColumns || allAvailableColumns.slice(0, 10));
         
-        console.log(`Query requires ${requiredColumns.length} columns from ${allAvailableColumns.length} total available columns`);
-        
-        // Extract schema for ONLY required columns
-        const minimalSchema = requiredColumns.reduce((acc: Record<string, string>, col: string) => {
-          if (ds.schema_info?.[col]) {
-            acc[col] = ds.schema_info[col];
-          }
-          return acc;
-        }, {});
-        
-        // Get minimal data - ONLY the required columns, max 30 rows
-        const minimalData = geminiResult.data.slice(0, 30).map((row: Record<string, unknown>) => {
-          const minimal: Record<string, unknown> = {};
-          requiredColumns.forEach((col: string) => {
-            if (row && col in row) {
-              minimal[col] = row[col];
+        // Get sample data for fallback context
+        let sampleData: Record<string, unknown>[] = [];
+        if (ds.type === "csv") {
+          try {
+            const config = ds.config as Record<string, unknown>;
+            const csvBase64 = config.csv_content as string;
+            if (csvBase64) {
+              const csvContent = Buffer.from(csvBase64, "base64").toString("utf-8");
+              const parseResult = Papa.parse(csvContent, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: true,
+              });
+              sampleData = (parseResult.data as Record<string, unknown>[]).slice(0, 20);
             }
-          });
-          return minimal;
-        });
+          } catch (error) {
+            console.error("Error reading CSV data for fallback context:", error);
+          }
+        }
         
-        // Build chart configuration if available
-        const chartConfigStr = geminiResult.chartConfig 
-          ? `\n**Chart Configuration:**
+        // Build full context if Gemini succeeded and returned data
+        if (geminiResult && geminiResult.data && geminiResult.data.length > 0) {
+          // Use columns determined by Gemini based on the query
+          // Gemini analyzes the query and determines which columns are needed
+          // We use ALL available columns in schema_info, not just selected_columns
+          const allAvailableColumns = Object.keys(ds.schema_info || {});
+          const requiredColumns = geminiResult.requiredColumns || 
+            (storedAnalysis?.keyColumns || allAvailableColumns.slice(0, 10));
+          
+          console.log(`Query requires ${requiredColumns.length} columns from ${allAvailableColumns.length} total available columns`);
+          
+          // Extract schema for ONLY required columns
+          const minimalSchema = requiredColumns.reduce((acc: Record<string, string>, col: string) => {
+            if (ds.schema_info?.[col]) {
+              acc[col] = ds.schema_info[col];
+            }
+            return acc;
+          }, {});
+          
+          // Get minimal data - ONLY the required columns, max 30 rows
+          const minimalData = geminiResult.data.slice(0, 30).map((row: Record<string, unknown>) => {
+            const minimal: Record<string, unknown> = {};
+            requiredColumns.forEach((col: string) => {
+              if (row && col in row) {
+                minimal[col] = row[col];
+              }
+            });
+            return minimal;
+          });
+          
+          // Build chart configuration if available
+          const chartConfigStr = geminiResult.chartConfig 
+            ? `\n**Chart Configuration:**
 - X-Axis: ${geminiResult.chartConfig.xAxis || "N/A"}
 - Y-Axis: ${geminiResult.chartConfig.yAxis || "N/A"}
 - Series: ${geminiResult.chartConfig.series?.join(", ") || "N/A"}
 - Categories: ${geminiResult.chartConfig.categories?.slice(0, 10).join(", ") || "N/A"}`
-          : '';
-        
-        // Build explanation text if available
-        const explanationText = queryExplanation 
-          ? `\n**Explanation:** ${queryExplanation.explanation}\n**What this shows:** ${queryExplanation.dataSummary}\n**Interpretation:** ${queryExplanation.interpretation}`
-          : `\n**Summary:** ${geminiResult.summary}`;
-        
-        dataContext = `
+            : '';
+          
+          // Build explanation text if available
+          const explanationText = queryExplanation 
+            ? `\n**Explanation:** ${queryExplanation.explanation}\n**What this shows:** ${queryExplanation.dataSummary}\n**Interpretation:** ${queryExplanation.interpretation}`
+            : `\n**Summary:** ${geminiResult.summary}`;
+          
+          dataContext = `
 You are DashMind AI, a business intelligence assistant generating interactive UI components.
+
+**CRITICAL**: The user has selected data source "${ds.name}" (${ds.type}).
+ALL user queries MUST use this data source. NEVER generate document upload UIs or ask for file uploads.
 
 **IMPORTANT CONTEXT:**
 - The user has selected the data source "${ds.name}" (${ds.type})
@@ -336,16 +369,47 @@ Generate interactive UI components (${geminiResult.visualization === "mixed" ? "
 
 ${isCached ? "Note: This response is from cache." : ""}
 `;
+        } else {
+          // Build fallback context when Gemini fails or returns empty
+          console.log("Building fallback context - Gemini failed or returned empty result");
+          dataContext = `
+You are DashMind AI, a business intelligence assistant.
+
+**CRITICAL**: The user has selected data source "${ds.name}" (${ds.type}).
+ALL user queries MUST use this data source. NEVER generate document upload UIs or ask for file uploads.
+
+**Data Schema:**
+${JSON.stringify(ds.schema_info || {}, null, 2)}
+
+${sampleData.length > 0 ? `**Sample Data (first ${sampleData.length} rows):**
+${JSON.stringify(sampleData, null, 2)}` : ''}
+
+Generate visualizations and insights based on this data. Use ONLY the data provided above. Do NOT ask for file uploads or generate document upload forms.
+`;
+        }
       }
     }
   }
   
-  // Add system context if we have data
-  if (dataContext) {
+  // Add system context if we have data source (always send when data source exists)
+  if (dataSource) {
+    // Ensure we have a context (use fallback if dataContext is empty)
+    const contextToUse = dataContext || `
+You are DashMind AI, a business intelligence assistant.
+
+**CRITICAL**: The user has selected data source "${dataSource.name}" (${dataSource.type}).
+ALL user queries MUST use this data source. NEVER generate document upload UIs or ask for file uploads.
+
+**Data Schema:**
+${JSON.stringify(dataSource.schema_info || {}, null, 2)}
+
+Generate visualizations and insights based on this data. Use ONLY the data provided above. Do NOT ask for file uploads or generate document upload forms.
+`;
+    
     // Prepend system message with data context
     const systemMessage: DBMessage = {
       role: "system",
-      content: dataContext,
+      content: contextToUse,
     };
     
     // Check if system message already exists

@@ -53,3 +53,4 @@ export function SamplePrompts({ prompts, loading, onPromptSelect }: SamplePrompt
   );
 }
 
+
