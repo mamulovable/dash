@@ -185,12 +185,12 @@ export default function FullScreenChatPage() {
       <Sidebar collapsed={mainSidebarCollapsed} onToggle={() => setMainSidebarCollapsed(!mainSidebarCollapsed)} />
       
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden min-h-0">
         {/* Header */}
         <Header breadcrumbs={[{ label: "Chat" }]} />
         
         {/* Chat Container - Full Height */}
-        <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 flex overflow-hidden relative min-h-0">
           {/* Floating Sidebar Overlay */}
           {sidebarOpen && (
             <>
@@ -292,9 +292,9 @@ export default function FullScreenChatPage() {
             )}
 
             {/* C1Chat Component - Full Remaining Space */}
-            <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative" style={{ height: '100%' }}>
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
               {selectedDataSourceId ? (
-                <div className="flex-1 min-h-0 w-full h-full relative" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div className="flex-1 min-h-0 w-full flex flex-col">
                   <C1Chat 
                     apiUrl={`/api/chat?dataSourceId=${selectedDataSourceId}`}
                     theme={{ mode: "dark" }}

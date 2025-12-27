@@ -81,23 +81,25 @@ body {
 }
 
 /* C1Chat Layout Fixes - Ensure proper filling and scrolling */
+/* Target all possible C1Chat root containers */
 [data-c1-chat],
 [data-c1-chat-root],
 .c1-chat-root,
 .c1-chat,
-div[class*="c1-chat"],
-div[class*="C1Chat"] {
+div[data-c1-chat],
+div[data-c1-chat-root] {
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
   min-height: 0 !important;
   max-height: 100% !important;
-  overflow: hidden !important;
 }
 
-/* Ensure the main chat container fills space */
-div[class*="c1-chat"] > div:first-child,
-div[class*="C1Chat"] > div:first-child {
+/* First level wrapper - should fill all available space */
+[data-c1-chat] > *,
+[data-c1-chat-root] > *,
+.c1-chat-root > *,
+.c1-chat > * {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   display: flex !important;
@@ -105,83 +107,41 @@ div[class*="C1Chat"] > div:first-child {
   height: 100% !important;
 }
 
-/* Ensure chat messages area scrolls properly */
+/* Messages container - this should be scrollable and fill remaining space */
 [data-c1-chat-messages],
 .c1-chat-messages,
 .c1-chat-content,
-div[class*="messages"],
-div[class*="Messages"] {
+[data-c1-chat] > * > *:first-child,
+.c1-chat > * > *:first-child {
   flex: 1 1 auto !important;
   overflow-y: auto !important;
-  min-height: 0 !important;
   overflow-x: hidden !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
   height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
 }
 
-/* Ensure message content expands */
+/* Ensure messages wrapper expands to show all content */
 [data-c1-chat-messages] > *,
 .c1-chat-messages > *,
-.c1-chat-content > *,
-div[class*="messages"] > * {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
+.c1-chat-content > * {
+  min-height: min-content !important;
 }
 
-/* Ensure input stays at bottom and is visible */
+/* Input container - stays at bottom, doesn't shrink */
 [data-c1-chat-input],
 .c1-chat-input,
 .c1-chat-input-container,
-div[class*="input"],
-div[class*="Input"],
-form[class*="input"],
-form[class*="Input"] {
+[data-c1-chat] > * > *:last-child,
+.c1-chat > * > *:last-child {
   flex-shrink: 0 !important;
   position: relative !important;
   z-index: 10 !important;
-  margin-top: auto !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* Fix any nested containers */
-[data-c1-chat] > *,
-[data-c1-chat-root] > *,
-div[class*="c1-chat"] > * {
-  min-height: 0;
 }
 
 /* Ensure textarea is visible */
-textarea[class*="input"],
-textarea[class*="Input"],
 textarea {
   visibility: visible !important;
   opacity: 1 !important;
   display: block !important;
-}
-
-/* Ensure response content fills available space */
-[data-c1-chat-messages] > div,
-.c1-chat-messages > div,
-div[class*="messages"] > div {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-/* Remove any max-height constraints that create black space */
-[data-c1-chat-messages],
-.c1-chat-messages,
-.c1-chat-content {
-  max-height: none !important;
-}
-
-/* Ensure the scrollable content area uses all available space */
-[data-c1-chat-messages] > div:first-child,
-.c1-chat-messages > div:first-child {
-  height: 100% !important;
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
 }
