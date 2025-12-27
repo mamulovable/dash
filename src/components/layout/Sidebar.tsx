@@ -11,6 +11,8 @@ import {
   Code,
   Users,
   Settings,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
@@ -32,7 +34,12 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  collapsed?: boolean;
+  onToggle?: () => void;
+}
+
+export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useUser();
   const [usage, setUsage] = useState<{
@@ -78,14 +85,26 @@ export function Sidebar() {
   const userAvatar = user?.imageUrl || "";
 
   return (
-    <div className="flex h-screen w-60 flex-col border-r bg-background">
+    <div className={`relative flex h-screen flex-col border-r bg-background transition-all duration-300 ${collapsed ? 'w-16' : 'w-60'}`}>
+      {/* Toggle Button */}
+      <button
+        onClick={onToggle}
+        className="absolute -right-3 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-md hover:bg-accent transition-colors"
+      >
+        {collapsed ? (
+          <ChevronRight className="h-4 w-4" />
+        ) : (
+          <ChevronLeft className="h-4 w-4" />
+        )}
+      </button>
+
       {/* Logo */}
       <div className="flex h-16 items-center border-b px-6">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold flex-shrink-0">
             D
           </div>
-          <span className="text-xl font-bold">DashMind</span>
+          {!collapsed && <span className="text-xl font-bold">DashMind</span>}
         </div>
       </div>
 
@@ -102,12 +121,14 @@ export function Sidebar() {
                 "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
                   ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                collapsed && "justify-center"
               )}
+              title={collapsed ? item.name : undefined}
             >
-              <Icon className="h-5 w-5" />
-              <span>{item.name}</span>
-              {item.badge && (
+              <Icon className="h-5 w-5 flex-shrink-0" />
+              {!collapsed && <span>{item.name}</span>}
+              {!collapsed && item.badge && (
                 <span className="ml-auto rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
                   {item.badge}
                 </span>
@@ -118,7 +139,7 @@ export function Sidebar() {
       </nav>
 
       {/* Query Usage */}
-      {usage && (
+      {usage && !collapsed && (
         <div className="border-t p-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
@@ -140,15 +161,20 @@ export function Sidebar() {
       {/* User Profile */}
       <div className="border-t p-4">
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-accent">
-            <Avatar className="h-8 w-8">
+          <DropdownMenuTrigger className={cn(
+            "flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-accent",
+            collapsed && "justify-center"
+          )}>
+            <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarImage src={userAvatar} alt={userName} />
               <AvatarFallback>{userInitials.toUpperCase()}</AvatarFallback>
             </Avatar>
-            <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium truncate">{userName}</p>
-              <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
-            </div>
+            {!collapsed && (
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-sm font-medium truncate">{userName}</p>
+                <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+              </div>
+            )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <Link href="/settings">

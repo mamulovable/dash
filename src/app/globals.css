@@ -84,34 +84,57 @@ body {
 [data-c1-chat],
 [data-c1-chat-root],
 .c1-chat-root,
-.c1-chat {
+.c1-chat,
+div[class*="c1-chat"],
+div[class*="C1Chat"] {
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
   min-height: 0 !important;
+  max-height: 100% !important;
 }
 
 /* Ensure chat messages area scrolls properly */
 [data-c1-chat-messages],
 .c1-chat-messages,
-.c1-chat-content {
+.c1-chat-content,
+div[class*="messages"],
+div[class*="Messages"] {
   flex: 1 1 auto !important;
   overflow-y: auto !important;
   min-height: 0 !important;
   overflow-x: hidden !important;
+  max-height: calc(100% - 200px) !important;
 }
 
-/* Ensure input stays at bottom */
+/* Ensure input stays at bottom and is visible */
 [data-c1-chat-input],
 .c1-chat-input,
-.c1-chat-input-container {
+.c1-chat-input-container,
+div[class*="input"],
+div[class*="Input"],
+form[class*="input"],
+form[class*="Input"] {
   flex-shrink: 0 !important;
   position: relative !important;
   z-index: 10 !important;
+  margin-top: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Fix any nested containers */
 [data-c1-chat] > *,
-[data-c1-chat-root] > * {
+[data-c1-chat-root] > *,
+div[class*="c1-chat"] > * {
   min-height: 0;
+}
+
+/* Ensure textarea is visible */
+textarea[class*="input"],
+textarea[class*="Input"],
+textarea {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
 }

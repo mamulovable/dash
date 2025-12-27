@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { C1Chat } from "@thesysai/genui-sdk";
 import "@crayonai/react-ui/styles/index.css";
-import { Database, PanelLeftOpen, Sparkles, X } from "lucide-react";
+import { Database, PanelLeftOpen, Sparkles, X, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { SamplePrompts } from "@/components/chat/SamplePrompts";
@@ -29,6 +29,8 @@ export default function FullScreenChatPage() {
   const [showSelectionModal, setShowSelectionModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [promptsOpen, setPromptsOpen] = useState(false);
+  const [mainSidebarCollapsed, setMainSidebarCollapsed] = useState(false);
+  const [promptsExpanded, setPromptsExpanded] = useState(true);
 
   const fetchDataSources = useCallback(async () => {
     try {
@@ -44,6 +46,19 @@ export default function FullScreenChatPage() {
           if (source) {
             setSelectedDataSourceId(source.id);
             setSelectedDataSourceName(source.name);
+            // Fetch sample prompts for this data source
+            setPromptsLoading(true);
+            try {
+              const promptsResponse = await fetch(`/api/data-sources/${source.id}/prompts`);
+              const promptsResult = await promptsResponse.json();
+              if (promptsResult.success && promptsResult.prompts) {
+                setSamplePrompts(promptsResult.prompts);
+              }
+            } catch (error) {
+              console.error("Error fetching sample prompts:", error);
+            } finally {
+              setPromptsLoading(false);
+            }
           }
         }
       }
@@ -168,7 +183,7 @@ export default function FullScreenChatPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Main Sidebar */}
-      <Sidebar />
+      <Sidebar collapsed={mainSidebarCollapsed} onToggle={() => setMainSidebarCollapsed(!mainSidebarCollapsed)} />
       
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -213,66 +228,56 @@ export default function FullScreenChatPage() {
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Top Bar with Controls */}
             {selectedDataSourceId ? (
-              <div className="flex-shrink-0 px-4 py-2 border-b border-border/50 bg-background/95 backdrop-blur-sm flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setSidebarOpen(true)}
-                    className="p-2 hover:bg-accent rounded-md transition-colors"
-                  >
-                    <PanelLeftOpen className="h-4 w-4" />
-                  </button>
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/50 dark:border-indigo-800/50">
-                    <div className="h-2 w-2 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse"></div>
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Querying</span>
-                    <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
-                      {selectedDataSourceName}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setShowSelectionModal(true)}
-                    className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors px-2 py-1 rounded-md hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30"
-                  >
-                    Change source
-                  </button>
-                </div>
-                {samplePrompts.length > 0 && (
-                  <div className="relative">
+              <>
+                <div className="flex-shrink-0 px-4 py-2 border-b border-border/50 bg-background/95 backdrop-blur-sm flex items-center justify-between">
+                  <div className="flex items-center gap-3">
                     <button
-                      onClick={() => setPromptsOpen(!promptsOpen)}
+                      onClick={() => setSidebarOpen(true)}
                       className="p-2 hover:bg-accent rounded-md transition-colors"
                     >
-                      <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                      <PanelLeftOpen className="h-4 w-4" />
                     </button>
-                    {promptsOpen && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-40"
-                          onClick={() => setPromptsOpen(false)}
-                        />
-                        <div className="absolute right-0 top-full mt-2 w-80 bg-background border border-border rounded-lg shadow-xl z-50 p-4 max-h-[400px] overflow-y-auto">
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-sm font-semibold">Sample Prompts</h3>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPromptsOpen(false);
-                              }}
-                              className="p-1 hover:bg-accent rounded-md"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                          <SamplePrompts 
-                            prompts={samplePrompts}
-                            loading={promptsLoading}
-                            onPromptSelect={handlePromptSelect}
-                          />
-                        </div>
-                      </>
-                    )}
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/50 dark:border-indigo-800/50">
+                      <div className="h-2 w-2 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse"></div>
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Querying</span>
+                      <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                        {selectedDataSourceName}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setShowSelectionModal(true)}
+                      className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors px-2 py-1 rounded-md hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30"
+                    >
+                      Change source
+                    </button>
+                  </div>
+                  {samplePrompts.length > 0 && (
+                    <button
+                      onClick={() => setPromptsExpanded(!promptsExpanded)}
+                      className="p-2 hover:bg-accent rounded-md transition-colors flex items-center gap-2"
+                    >
+                      <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                      {promptsExpanded ? (
+                        <ChevronUp className="h-3 w-3 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                      )}
+                    </button>
+                  )}
+                </div>
+                {/* Sample Prompts Section - Always Visible When Expanded */}
+                {selectedDataSourceId && samplePrompts.length > 0 && promptsExpanded && (
+                  <div className="flex-shrink-0 border-b border-border/50 bg-gradient-to-r from-indigo-50/60 via-purple-50/40 to-pink-50/30 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/15 max-h-[200px] overflow-hidden flex flex-col">
+                    <div className="px-4 py-2 overflow-y-auto flex-1 min-h-0">
+                      <SamplePrompts 
+                        prompts={samplePrompts}
+                        loading={promptsLoading}
+                        onPromptSelect={handlePromptSelect}
+                      />
+                    </div>
                   </div>
                 )}
-              </div>
+              </>
             ) : (
               <div className="flex-shrink-0 px-4 py-2 border-b border-border/50 flex items-center gap-2">
                 <button
@@ -288,9 +293,9 @@ export default function FullScreenChatPage() {
             )}
 
             {/* C1Chat Component - Full Remaining Space */}
-            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
               {selectedDataSourceId ? (
-                <div className="flex-1 min-h-0 w-full">
+                <div className="flex-1 min-h-0 w-full relative" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <C1Chat 
                     apiUrl={`/api/chat?dataSourceId=${selectedDataSourceId}`}
                     theme={{ mode: "dark" }}
