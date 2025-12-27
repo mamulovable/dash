@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { C1Chat } from "@thesysai/genui-sdk";
 import "@crayonai/react-ui/styles/index.css";
 import { Database, ChevronUp, ChevronDown, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -10,8 +11,10 @@ import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { SamplePrompts } from "@/components/chat/SamplePrompts";
 import { DataSourceSelectionModal } from "@/components/chat/DataSourceSelectionModal";
 import { DataSource } from "@/types";
+import { v4 as uuidv4 } from "uuid";
 
 export default function ChatPage() {
+  const router = useRouter();
   const [selectedDataSourceId, setSelectedDataSourceId] = useState<string | null>(null);
   const [selectedDataSourceName, setSelectedDataSourceName] = useState<string>("");
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
@@ -51,31 +54,11 @@ export default function ChatPage() {
   };
   
   const handleDataSourceSelect = async (id: string, name: string) => {
-    setSelectedDataSourceId(id);
-    setSelectedDataSourceName(name);
-    setShowSelectionModal(false); // Close modal when source is selected
+    setShowSelectionModal(false);
     
-    // Fetch sample prompts for this data source
-    if (id) {
-      setPromptsLoading(true);
-      try {
-        const response = await fetch(`/api/data-sources/${id}/prompts`);
-        const result = await response.json();
-        
-        if (result.success && result.prompts) {
-          setSamplePrompts(result.prompts);
-        } else {
-          setSamplePrompts([]);
-        }
-      } catch (error) {
-        console.error("Error fetching sample prompts:", error);
-        setSamplePrompts([]);
-      } finally {
-        setPromptsLoading(false);
-      }
-    } else {
-      setSamplePrompts([]);
-    }
+    // Generate a threadId and redirect to full-screen chat
+    const threadId = uuidv4();
+    router.push(`/chat/${threadId}?dataSourceId=${id}`);
   };
 
   const handleChangeDataSource = () => {
@@ -109,7 +92,7 @@ export default function ChatPage() {
   }, [selectedDataSourceId, selectedDataSourceName]);
 
   return (
-    <DashboardLayout breadcrumbs={[{ label: "Chat" }]}>
+    <DashboardLayout breadcrumbs={[{ label: "Chat" }]} noPadding>
       {/* Data Source Selection Modal */}
       <DataSourceSelectionModal
         open={showSelectionModal}
@@ -118,7 +101,7 @@ export default function ChatPage() {
         onSelect={handleDataSourceSelect}
       />
 
-      <div className="flex h-[calc(100vh-8rem)] -mx-6 -mb-6 bg-gradient-to-br from-background via-background to-muted/20 overflow-hidden relative">
+      <div className="flex h-full bg-gradient-to-br from-background via-background to-muted/20 overflow-hidden relative">
         {/* Chat Sidebar - Data Sources & Templates - Collapsible */}
         <div className={`flex-shrink-0 transition-all duration-300 ${sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-[280px]'}`}>
           <ChatSidebar 
@@ -287,15 +270,13 @@ export default function ChatPage() {
           )}
           
           {/* C1 Chat Component - Must take remaining space */}
-          <div className="flex-1 min-h-0 relative overflow-hidden w-full" style={{ height: '100%' }}>
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden w-full">
             {selectedDataSourceId ? (
-              <div className="absolute inset-0 w-full h-full" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', width: '100%' }}>
-                  <C1Chat 
-                    apiUrl={`/api/chat?dataSourceId=${selectedDataSourceId}`}
-                    theme={{ mode: "dark" }}
-                  />
-                </div>
+              <div className="flex-1 min-h-0 w-full">
+                <C1Chat 
+                  apiUrl={`/api/chat?dataSourceId=${selectedDataSourceId}`}
+                  theme={{ mode: "dark" }}
+                />
               </div>
             ) : (
               <div className="flex items-center justify-center h-full bg-gradient-to-br from-muted/20 via-background to-muted/10">

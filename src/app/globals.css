@@ -79,3 +79,39 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+/* C1Chat Layout Fixes - Ensure proper filling and scrolling */
+[data-c1-chat],
+[data-c1-chat-root],
+.c1-chat-root,
+.c1-chat {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+}
+
+/* Ensure chat messages area scrolls properly */
+[data-c1-chat-messages],
+.c1-chat-messages,
+.c1-chat-content {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+}
+
+/* Ensure input stays at bottom */
+[data-c1-chat-input],
+.c1-chat-input,
+.c1-chat-input-container {
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Fix any nested containers */
+[data-c1-chat] > *,
+[data-c1-chat-root] > * {
+  min-height: 0;
+}
