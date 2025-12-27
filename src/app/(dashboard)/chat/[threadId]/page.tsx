@@ -292,9 +292,9 @@ export default function FullScreenChatPage() {
             )}
 
             {/* C1Chat Component - Full Remaining Space */}
-            <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative" style={{ height: '100%' }}>
               {selectedDataSourceId ? (
-                <div className="flex-1 min-h-0 w-full relative" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div className="flex-1 min-h-0 w-full h-full relative" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   <C1Chat 
                     apiUrl={`/api/chat?dataSourceId=${selectedDataSourceId}`}
                     theme={{ mode: "dark" }}

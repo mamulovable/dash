@@ -92,6 +92,17 @@ div[class*="C1Chat"] {
   flex-direction: column !important;
   min-height: 0 !important;
   max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Ensure the main chat container fills space */
+div[class*="c1-chat"] > div:first-child,
+div[class*="C1Chat"] > div:first-child {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
 }
 
 /* Ensure chat messages area scrolls properly */
@@ -104,7 +115,18 @@ div[class*="Messages"] {
   overflow-y: auto !important;
   min-height: 0 !important;
   overflow-x: hidden !important;
-  max-height: calc(100% - 200px) !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Ensure message content expands */
+[data-c1-chat-messages] > *,
+.c1-chat-messages > *,
+.c1-chat-content > *,
+div[class*="messages"] > * {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
 }
 
 /* Ensure input stays at bottom and is visible */
@@ -137,4 +159,29 @@ textarea {
   visibility: visible !important;
   opacity: 1 !important;
   display: block !important;
+}
+
+/* Ensure response content fills available space */
+[data-c1-chat-messages] > div,
+.c1-chat-messages > div,
+div[class*="messages"] > div {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Remove any max-height constraints that create black space */
+[data-c1-chat-messages],
+.c1-chat-messages,
+.c1-chat-content {
+  max-height: none !important;
+}
+
+/* Ensure the scrollable content area uses all available space */
+[data-c1-chat-messages] > div:first-child,
+.c1-chat-messages > div:first-child {
+  height: 100% !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
 }
