@@ -28,7 +28,6 @@ export default function FullScreenChatPage() {
   const [promptsLoading, setPromptsLoading] = useState(false);
   const [showSelectionModal, setShowSelectionModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [promptsOpen, setPromptsOpen] = useState(false);
   const [mainSidebarCollapsed, setMainSidebarCollapsed] = useState(false);
   const [promptsExpanded, setPromptsExpanded] = useState(true);
 
@@ -117,7 +116,7 @@ export default function FullScreenChatPage() {
   };
 
   const handlePromptSelect = (prompt: string) => {
-    setPromptsOpen(false);
+    setPromptsExpanded(false);
     // Find C1Chat's input and send button, then simulate user interaction
     const findAndSend = () => {
       const chatInput = document.querySelector('textarea') as HTMLTextAreaElement;
