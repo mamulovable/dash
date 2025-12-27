@@ -116,7 +116,7 @@ export default function ChatPage() {
         onSelect={handleDataSourceSelect}
       />
 
-      <div className="flex h-[calc(100vh-8rem)] -mx-6 -mb-6">
+      <div className="flex h-[calc(100vh-8rem)] -mx-6 -mb-6 bg-gradient-to-br from-background via-background to-muted/20">
         {/* Chat Sidebar - Data Sources & Templates */}
         <ChatSidebar 
           onDataSourceSelect={handleDataSourceSelect}
@@ -126,28 +126,34 @@ export default function ChatPage() {
         />
         
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col bg-background border-l min-w-0">
-          {/* Data source header */}
+        <div className="flex-1 flex flex-col bg-background/50 backdrop-blur-sm border-l border-border/50 min-w-0 shadow-sm">
+          {/* Data source header - Enhanced */}
           {selectedDataSourceId ? (
-            <div className="px-6 py-3 border-b bg-indigo-50/50 dark:bg-indigo-950/30 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Querying: </span>
-                  <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                    {selectedDataSourceName}
-                  </span>
+            <div className="px-6 py-4 border-b border-border/50 bg-gradient-to-r from-indigo-50/80 via-purple-50/50 to-pink-50/30 dark:from-indigo-950/40 dark:via-purple-950/30 dark:to-pink-950/20 backdrop-blur-sm flex items-center justify-between flex-shrink-0 transition-all duration-200">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-black/20 backdrop-blur-sm border border-indigo-200/50 dark:border-indigo-800/50 shadow-sm">
+                  <div className="h-2 w-2 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Querying</span>
+                    <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+                      {selectedDataSourceName}
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={handleChangeDataSource}
-                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                  className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors px-2 py-1 rounded-md hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30"
                 >
                   Change source
                 </button>
               </div>
             </div>
           ) : (
-            <div className="px-6 py-3 border-b flex-shrink-0">
-              <p className="text-sm text-muted-foreground">Select a data source to start</p>
+            <div className="px-6 py-4 border-b border-border/50 flex-shrink-0 bg-muted/30">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50"></span>
+                Select a data source to start querying your data
+              </p>
             </div>
           )}
           
@@ -243,7 +249,7 @@ export default function ChatPage() {
           )}
           
           {/* C1 Chat Component */}
-          <div className="flex-1 min-h-0 relative">
+          <div className="flex-1 min-h-0 relative overflow-hidden">
             {selectedDataSourceId ? (
               <div className="absolute inset-0">
                 <C1Chat 
@@ -252,29 +258,41 @@ export default function ChatPage() {
                 />
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full bg-muted/30">
-                <div className="text-center max-w-md px-6">
-                  <div className="mb-6">
-                    <Database className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">No Data Source Selected</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Select a data source to start asking questions and generating insights from your data.
-                    </p>
-                    {dataSources.length === 0 && !loading ? (
-                      <a href="/data-sources">
-                        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                          Connect Your First Data Source
-                        </Button>
-                      </a>
-                    ) : (
-                      <Button
-                        onClick={() => setShowSelectionModal(true)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                      >
-                        Select Data Source
-                      </Button>
-                    )}
+              <div className="flex items-center justify-center h-full bg-gradient-to-br from-muted/20 via-background to-muted/10">
+                <div className="text-center max-w-lg px-8 py-12">
+                  <div className="relative mb-8">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="h-24 w-24 rounded-full bg-indigo-100/50 dark:bg-indigo-900/30 blur-2xl animate-pulse"></div>
+                    </div>
+                    <div className="relative">
+                      <Database className="h-20 w-20 mx-auto text-indigo-500/60 dark:text-indigo-400/60 mb-6 drop-shadow-lg" />
+                    </div>
                   </div>
+                  <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                    Ready to explore your data?
+                  </h3>
+                  <p className="text-muted-foreground mb-8 leading-relaxed text-base">
+                    Select a data source to start asking questions and generating insights. 
+                    Our AI will help you understand your data better.
+                  </p>
+                  {dataSources.length === 0 && !loading ? (
+                    <a href="/data-sources">
+                      <Button 
+                        size="lg"
+                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 dark:shadow-indigo-900/50 px-8 py-6 text-base font-semibold transition-all duration-200 hover:scale-105 hover:shadow-xl"
+                      >
+                        Connect Your First Data Source
+                      </Button>
+                    </a>
+                  ) : (
+                    <Button
+                      onClick={() => setShowSelectionModal(true)}
+                      size="lg"
+                      className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 dark:shadow-indigo-900/50 px-8 py-6 text-base font-semibold transition-all duration-200 hover:scale-105 hover:shadow-xl"
+                    >
+                      Select Data Source
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

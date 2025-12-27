@@ -72,11 +72,13 @@ export function DataSourceSelectionModal({
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-2xl" onInteractOutside={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle className="text-2xl">Select a Data Source</DialogTitle>
-          <DialogDescription>
-            Choose a data source to start asking questions and generating insights.
+      <DialogContent className="sm:max-w-2xl bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+            Select a Data Source
+          </DialogTitle>
+          <DialogDescription className="text-base text-muted-foreground">
+            Choose a data source to start asking questions and generating insights from your data.
           </DialogDescription>
         </DialogHeader>
 
@@ -110,25 +112,27 @@ export function DataSourceSelectionModal({
                   <Card
                     key={source.id}
                     className={cn(
-                      "cursor-pointer transition-all hover:border-indigo-500 hover:shadow-md",
-                      isSelected && "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-950/30"
+                      "cursor-pointer transition-all duration-200",
+                      "hover:border-indigo-400 dark:hover:border-indigo-600 hover:shadow-lg hover:shadow-indigo-500/10 dark:hover:shadow-indigo-900/20",
+                      "hover:scale-[1.01]",
+                      isSelected && "border-indigo-500 dark:border-indigo-400 ring-2 ring-indigo-500/20 dark:ring-indigo-400/20 bg-gradient-to-br from-indigo-50/80 to-purple-50/50 dark:from-indigo-950/40 dark:to-purple-950/30 shadow-md"
                     )}
                     onClick={() => setSelectedId(source.id)}
                     onDoubleClick={() => handleCardDoubleClick(source.id)}
                   >
-                    <CardContent className="p-4">
+                    <CardContent className="p-5">
                       <div className="flex items-start gap-4">
                         <div
                           className={cn(
-                            "p-3 rounded-lg",
+                            "p-3.5 rounded-xl transition-all duration-200",
                             isSelected
-                              ? "bg-indigo-100 dark:bg-indigo-900"
-                              : "bg-muted"
+                              ? "bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 shadow-sm"
+                              : "bg-muted/60"
                           )}
                         >
                           <Icon
                             className={cn(
-                              "h-5 w-5",
+                              "h-5 w-5 transition-colors",
                               isSelected
                                 ? "text-indigo-600 dark:text-indigo-400"
                                 : "text-muted-foreground"
@@ -136,24 +140,27 @@ export function DataSourceSelectionModal({
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-base mb-1 truncate">
+                              <h3 className={cn(
+                                "font-semibold text-base mb-2 truncate transition-colors",
+                                isSelected ? "text-indigo-900 dark:text-indigo-100" : "text-foreground"
+                              )}>
                                 {source.name}
                               </h3>
-                              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                <span>{formatType(source.type)}</span>
-                                <span>•</span>
-                                <span>{(source.row_count || 0).toLocaleString()} rows</span>
+                              <div className="flex items-center gap-2.5 text-sm text-muted-foreground flex-wrap">
+                                <span className="px-2 py-0.5 rounded-md bg-muted/60 text-xs font-medium">{formatType(source.type)}</span>
+                                <span className="text-muted-foreground/50">•</span>
+                                <span className="font-medium">{(source.row_count || 0).toLocaleString()} rows</span>
                                 {source.status && (
                                   <>
-                                    <span>•</span>
+                                    <span className="text-muted-foreground/50">•</span>
                                     <span
                                       className={cn(
-                                        "capitalize",
-                                        source.status === "connected" && "text-green-600 dark:text-green-400",
-                                        source.status === "syncing" && "text-yellow-600 dark:text-yellow-400",
-                                        source.status === "error" && "text-red-600 dark:text-red-400"
+                                        "capitalize px-2 py-0.5 rounded-md text-xs font-medium",
+                                        source.status === "connected" && "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+                                        source.status === "syncing" && "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
+                                        source.status === "error" && "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
                                       )}
                                     >
                                       {source.status}
@@ -164,7 +171,7 @@ export function DataSourceSelectionModal({
                             </div>
                             {isSelected && (
                               <div className="flex-shrink-0">
-                                <div className="h-6 w-6 rounded-full bg-indigo-600 dark:bg-indigo-400 flex items-center justify-center">
+                                <div className="h-7 w-7 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 flex items-center justify-center shadow-lg shadow-indigo-500/30 dark:shadow-indigo-900/50 animate-in zoom-in duration-200">
                                   <Check className="h-4 w-4 text-white" />
                                 </div>
                               </div>
@@ -181,16 +188,26 @@ export function DataSourceSelectionModal({
         </div>
 
         {!loading && dataSources.length > 0 && (
-          <div className="flex items-center justify-between gap-4 mt-6 pt-4 border-t">
+          <div className="flex items-center justify-between gap-4 mt-6 pt-5 border-t border-border/50">
             <Link href="/data-sources">
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
+              >
                 + Connect New Source
               </Button>
             </Link>
             <Button
               onClick={handleConfirm}
               disabled={!selectedId}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              className={cn(
+                "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white",
+                "shadow-lg shadow-indigo-500/25 dark:shadow-indigo-900/50",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "transition-all duration-200 hover:scale-105 hover:shadow-xl",
+                "px-6 font-semibold"
+              )}
             >
               Continue with Selected Source
             </Button>
