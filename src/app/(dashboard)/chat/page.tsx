@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { C1Chat } from "@thesysai/genui-sdk";
 import "@crayonai/react-ui/styles/index.css";
-import { Database } from "lucide-react";
+import { Database, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
@@ -19,6 +19,7 @@ export default function ChatPage() {
   const [samplePrompts, setSamplePrompts] = useState<string[]>([]);
   const [promptsLoading, setPromptsLoading] = useState(false);
   const [showSelectionModal, setShowSelectionModal] = useState(false);
+  const [promptsExpanded, setPromptsExpanded] = useState(true);
 
   useEffect(() => {
     fetchDataSources();
@@ -126,7 +127,7 @@ export default function ChatPage() {
         />
         
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col bg-background/50 backdrop-blur-sm border-l border-border/50 min-w-0 shadow-sm">
+        <div className="flex-1 flex flex-col bg-background/50 backdrop-blur-sm border-l border-border/50 min-w-0 shadow-sm overflow-hidden">
           {/* Data source header - Enhanced */}
           {selectedDataSourceId ? (
             <div className="px-6 py-4 border-b border-border/50 bg-gradient-to-r from-indigo-50/80 via-purple-50/50 to-pink-50/30 dark:from-indigo-950/40 dark:via-purple-950/30 dark:to-pink-950/20 backdrop-blur-sm flex items-center justify-between flex-shrink-0 transition-all duration-200">
@@ -157,12 +158,29 @@ export default function ChatPage() {
             </div>
           )}
           
-          {/* Sample Prompts */}
-          {selectedDataSourceId && (
-            <SamplePrompts 
-              prompts={samplePrompts}
-              loading={promptsLoading}
-              onPromptSelect={(prompt) => {
+          {/* Sample Prompts - Collapsible and Compact */}
+          {selectedDataSourceId && samplePrompts.length > 0 && (
+            <div className="flex-shrink-0 border-b border-border/50 bg-gradient-to-r from-indigo-50/60 via-purple-50/40 to-pink-50/30 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/15 max-h-[180px] overflow-hidden flex flex-col">
+              <button
+                onClick={() => setPromptsExpanded(!promptsExpanded)}
+                className="w-full px-6 py-2 flex items-center justify-between hover:bg-indigo-100/50 dark:hover:bg-indigo-900/20 transition-colors flex-shrink-0"
+              >
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Sample Prompts ({samplePrompts.length})
+                </span>
+                {promptsExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+              {promptsExpanded && (
+                <div className="px-6 pb-3 overflow-y-auto flex-1 min-h-0">
+                  <SamplePrompts 
+                    prompts={samplePrompts}
+                    loading={promptsLoading}
+                    onPromptSelect={(prompt) => {
+                      setPromptsExpanded(false); // Collapse after selection
                 // Find C1Chat's input and send button, then simulate user interaction
                 const findAndSend = () => {
                   // Find the textarea input
@@ -244,18 +262,23 @@ export default function ChatPage() {
                 
                 // Start the process
                 findAndSend();
-              }}
-            />
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           )}
           
-          {/* C1 Chat Component */}
+          {/* C1 Chat Component - Must take remaining space */}
           <div className="flex-1 min-h-0 relative overflow-hidden">
             {selectedDataSourceId ? (
-              <div className="absolute inset-0">
-                <C1Chat 
-                  apiUrl={`/api/chat?dataSourceId=${selectedDataSourceId}`}
-                  theme={{ mode: "dark" }}
-                />
+              <div className="absolute inset-0 w-full h-full overflow-hidden">
+                <div className="w-full h-full flex flex-col">
+                  <C1Chat 
+                    apiUrl={`/api/chat?dataSourceId=${selectedDataSourceId}`}
+                    theme={{ mode: "dark" }}
+                  />
+                </div>
               </div>
             ) : (
               <div className="flex items-center justify-center h-full bg-gradient-to-br from-muted/20 via-background to-muted/10">
