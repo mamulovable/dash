@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { C1Chat } from "@thesysai/genui-sdk";
 import "@crayonai/react-ui/styles/index.css";
-import { Database, PanelLeftClose, PanelLeftOpen, Sparkles, X } from "lucide-react";
+import { Database, PanelLeftOpen, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { SamplePrompts } from "@/components/chat/SamplePrompts";
@@ -30,9 +30,33 @@ export default function FullScreenChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [promptsOpen, setPromptsOpen] = useState(false);
 
+  const fetchDataSources = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/data-sources");
+      const result = await response.json();
+
+      if (result.success) {
+        setDataSources(result.data || []);
+        // If URL has dataSourceId, use it
+        if (dataSourceIdFromUrl) {
+          const source = result.data?.find((ds: DataSource) => ds.id === dataSourceIdFromUrl);
+          if (source) {
+            setSelectedDataSourceId(source.id);
+            setSelectedDataSourceName(source.name);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching data sources:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [dataSourceIdFromUrl]);
+
   useEffect(() => {
     fetchDataSources();
-  }, []);
+  }, [fetchDataSources]);
 
   useEffect(() => {
     // If no data source selected and we have data sources, show modal
