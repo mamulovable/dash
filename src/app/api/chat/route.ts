@@ -131,6 +131,54 @@ export async function POST(req: NextRequest) {
       // Get stored analysis from data source config (from initial Gemini analysis)
       const storedAnalysis = (dataSource.config as Record<string, unknown>)?.analysis as DataSourceAnalysis | null;
       
+      // Load sample data ONCE - will be reused for both Gemini processing and fallback context
+      let sampleData: Record<string, unknown>[] = [];
+      if (dataSource.type === "csv") {
+        try {
+          const config = dataSource.config as Record<string, unknown>;
+          const csvBase64 = config.csv_content as string;
+          
+          if (csvBase64) {
+            console.log(`Found csv_content in config, length: ${csvBase64.length}`);
+            // Decode base64 CSV content
+            const csvContent = Buffer.from(csvBase64, "base64").toString("utf-8");
+            console.log(`Decoded CSV content length: ${csvContent.length}`);
+            
+            const parseResult = Papa.parse(csvContent, {
+              header: true,
+              skipEmptyLines: true,
+              dynamicTyping: true,
+            });
+            
+            if (parseResult.errors.length > 0) {
+              console.error("CSV parsing errors:", parseResult.errors);
+            }
+            
+            const csvData = parseResult.data as Record<string, unknown>[];
+            console.log(`Parsed CSV data: ${csvData.length} rows, columns: ${parseResult.meta.fields?.join(", ") || "none"}`);
+            
+            if (csvData.length === 0) {
+              console.warn("CSV data is empty after parsing");
+            } else {
+              // Use ALL CSV data - this ensures we have access to all data from the selected data source
+              sampleData = csvData; // Use all rows
+              console.log(`Loaded ALL ${sampleData.length} rows from CSV data source`);
+            }
+          } else {
+            console.warn("No csv_content found in data source config. Config keys:", Object.keys(config));
+            // For older data sources without csv_content, we'll rely on schema_info
+            // which should still be available
+          }
+        } catch (error) {
+          console.error("Error reading CSV data from database:", error);
+          // Continue with empty sample data
+        }
+      } else if (dataSource.type === "api") {
+        // For API sources, we don't have sample data readily available
+        // The Gemini analysis from initial connection should be sufficient
+        sampleData = [];
+      }
+      
       // Generate cache key (userQuery already defined above)
       const cacheKey = generateCacheKey(
         dataSourceId,
@@ -148,56 +196,6 @@ export async function POST(req: NextRequest) {
       } else {
         // Process with Gemini - analyze query and extract ONLY minimal data needed for UI
         try {
-          // Get sample data from data source based on type
-          let sampleData: Record<string, unknown>[] = [];
-          
-          if (dataSource.type === "csv") {
-            // Read CSV data from database config (stored as base64)
-            try {
-              const config = dataSource.config as Record<string, unknown>;
-              const csvBase64 = config.csv_content as string;
-              
-              if (csvBase64) {
-                console.log(`Found csv_content in config, length: ${csvBase64.length}`);
-                // Decode base64 CSV content
-                const csvContent = Buffer.from(csvBase64, "base64").toString("utf-8");
-                console.log(`Decoded CSV content length: ${csvContent.length}`);
-                
-                const parseResult = Papa.parse(csvContent, {
-                  header: true,
-                  skipEmptyLines: true,
-                  dynamicTyping: true,
-                });
-                
-                if (parseResult.errors.length > 0) {
-                  console.error("CSV parsing errors:", parseResult.errors);
-                }
-                
-                const csvData = parseResult.data as Record<string, unknown>[];
-                console.log(`Parsed CSV data: ${csvData.length} rows, columns: ${parseResult.meta.fields?.join(", ") || "none"}`);
-                
-                if (csvData.length === 0) {
-                  console.warn("CSV data is empty after parsing");
-                } else {
-                  // Use ALL CSV data, not just first 50 rows
-                  // This ensures we have access to all data from the selected data source
-                  sampleData = csvData; // Use all rows, not just first 50
-                  console.log(`Loaded ALL ${sampleData.length} rows from CSV data source for analysis`);
-                }
-              } else {
-                console.warn("No csv_content found in data source config. Config keys:", Object.keys(config));
-                // For older data sources without csv_content, we'll rely on schema_info
-                // which should still be available
-              }
-            } catch (error) {
-              console.error("Error reading CSV data from database:", error);
-              // Continue with empty sample data
-            }
-          } else if (dataSource.type === "api") {
-            // For API sources, we don't have sample data readily available
-            // The Gemini analysis from initial connection should be sufficient
-            sampleData = [];
-          }
           
           // Validate we have at least schema or sample data
           const schemaInfo = dataSource.schema_info || {};
@@ -269,75 +267,54 @@ export async function POST(req: NextRequest) {
       
       // Build data context for C1 - always build context if data source exists
       // Build full context if Gemini succeeded, fallback context if Gemini failed
-      if (dataSource) {
-        // Capture dataSource in const for TypeScript narrowing
-        const ds = dataSource;
+      // Capture dataSource in const for TypeScript narrowing
+      const ds = dataSource;
+      
+      // Build full context if Gemini succeeded and returned data
+      if (geminiResult && geminiResult.data && geminiResult.data.length > 0) {
+        // Use columns determined by Gemini based on the query
+        // Gemini analyzes the query and determines which columns are needed
+        // We use ALL available columns in schema_info, not just selected_columns
+        const allAvailableColumns = Object.keys(ds.schema_info || {});
+        const requiredColumns = geminiResult.requiredColumns || 
+          (storedAnalysis?.keyColumns || allAvailableColumns.slice(0, 10));
         
-        // Get sample data for fallback context
-        let sampleData: Record<string, unknown>[] = [];
-        if (ds.type === "csv") {
-          try {
-            const config = ds.config as Record<string, unknown>;
-            const csvBase64 = config.csv_content as string;
-            if (csvBase64) {
-              const csvContent = Buffer.from(csvBase64, "base64").toString("utf-8");
-              const parseResult = Papa.parse(csvContent, {
-                header: true,
-                skipEmptyLines: true,
-                dynamicTyping: true,
-              });
-              sampleData = (parseResult.data as Record<string, unknown>[]).slice(0, 20);
-            }
-          } catch (error) {
-            console.error("Error reading CSV data for fallback context:", error);
+        console.log(`Query requires ${requiredColumns.length} columns from ${allAvailableColumns.length} total available columns`);
+        
+        // Extract schema for ONLY required columns
+        const minimalSchema = requiredColumns.reduce((acc: Record<string, string>, col: string) => {
+          if (ds.schema_info?.[col]) {
+            acc[col] = ds.schema_info[col];
           }
-        }
+          return acc;
+        }, {});
         
-        // Build full context if Gemini succeeded and returned data
-        if (geminiResult && geminiResult.data && geminiResult.data.length > 0) {
-          // Use columns determined by Gemini based on the query
-          // Gemini analyzes the query and determines which columns are needed
-          // We use ALL available columns in schema_info, not just selected_columns
-          const allAvailableColumns = Object.keys(ds.schema_info || {});
-          const requiredColumns = geminiResult.requiredColumns || 
-            (storedAnalysis?.keyColumns || allAvailableColumns.slice(0, 10));
-          
-          console.log(`Query requires ${requiredColumns.length} columns from ${allAvailableColumns.length} total available columns`);
-          
-          // Extract schema for ONLY required columns
-          const minimalSchema = requiredColumns.reduce((acc: Record<string, string>, col: string) => {
-            if (ds.schema_info?.[col]) {
-              acc[col] = ds.schema_info[col];
+        // Get minimal data - ONLY the required columns, max 30 rows
+        const minimalData = geminiResult.data.slice(0, 30).map((row: Record<string, unknown>) => {
+          const minimal: Record<string, unknown> = {};
+          requiredColumns.forEach((col: string) => {
+            if (row && col in row) {
+              minimal[col] = row[col];
             }
-            return acc;
-          }, {});
-          
-          // Get minimal data - ONLY the required columns, max 30 rows
-          const minimalData = geminiResult.data.slice(0, 30).map((row: Record<string, unknown>) => {
-            const minimal: Record<string, unknown> = {};
-            requiredColumns.forEach((col: string) => {
-              if (row && col in row) {
-                minimal[col] = row[col];
-              }
-            });
-            return minimal;
           });
-          
-          // Build chart configuration if available
-          const chartConfigStr = geminiResult.chartConfig 
-            ? `\n**Chart Configuration:**
+          return minimal;
+        });
+        
+        // Build chart configuration if available
+        const chartConfigStr = geminiResult.chartConfig 
+          ? `\n**Chart Configuration:**
 - X-Axis: ${geminiResult.chartConfig.xAxis || "N/A"}
 - Y-Axis: ${geminiResult.chartConfig.yAxis || "N/A"}
 - Series: ${geminiResult.chartConfig.series?.join(", ") || "N/A"}
 - Categories: ${geminiResult.chartConfig.categories?.slice(0, 10).join(", ") || "N/A"}`
-            : '';
-          
-          // Build explanation text if available
-          const explanationText = queryExplanation 
-            ? `\n**Explanation:** ${queryExplanation.explanation}\n**What this shows:** ${queryExplanation.dataSummary}\n**Interpretation:** ${queryExplanation.interpretation}`
-            : `\n**Summary:** ${geminiResult.summary}`;
-          
-          dataContext = `
+          : '';
+        
+        // Build explanation text if available
+        const explanationText = queryExplanation 
+          ? `\n**Explanation:** ${queryExplanation.explanation}\n**What this shows:** ${queryExplanation.dataSummary}\n**Interpretation:** ${queryExplanation.interpretation}`
+          : `\n**Summary:** ${geminiResult.summary}`;
+        
+        dataContext = `
 You are DashMind AI, a business intelligence assistant generating interactive UI components.
 
 **CRITICAL**: The user has selected data source "${ds.name}" (${ds.type}).
@@ -369,10 +346,11 @@ Generate interactive UI components (${geminiResult.visualization === "mixed" ? "
 
 ${isCached ? "Note: This response is from cache." : ""}
 `;
-        } else {
-          // Build fallback context when Gemini fails or returns empty
-          console.log("Building fallback context - Gemini failed or returned empty result");
-          dataContext = `
+      } else {
+        // Build fallback context when Gemini fails or returns empty
+        // Use ALL the sampleData we already loaded (not just 20 rows!)
+        console.log("Building fallback context - Gemini failed or returned empty result");
+        dataContext = `
 You are DashMind AI, a business intelligence assistant.
 
 **CRITICAL**: The user has selected data source "${ds.name}" (${ds.type}).
@@ -381,12 +359,11 @@ ALL user queries MUST use this data source. NEVER generate document upload UIs o
 **Data Schema:**
 ${JSON.stringify(ds.schema_info || {}, null, 2)}
 
-${sampleData.length > 0 ? `**Sample Data (first ${sampleData.length} rows):**
+${sampleData.length > 0 ? `**Complete Data (${sampleData.length} rows - ALL data from the selected data source):**
 ${JSON.stringify(sampleData, null, 2)}` : ''}
 
 Generate visualizations and insights based on this data. Use ONLY the data provided above. Do NOT ask for file uploads or generate document upload forms.
 `;
-        }
       }
     }
   }
