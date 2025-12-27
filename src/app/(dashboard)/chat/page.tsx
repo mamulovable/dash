@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { C1Chat } from "@thesysai/genui-sdk";
 import "@crayonai/react-ui/styles/index.css";
-import { Database, ChevronUp, ChevronDown } from "lucide-react";
+import { Database, ChevronUp, ChevronDown, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
@@ -19,7 +19,8 @@ export default function ChatPage() {
   const [samplePrompts, setSamplePrompts] = useState<string[]>([]);
   const [promptsLoading, setPromptsLoading] = useState(false);
   const [showSelectionModal, setShowSelectionModal] = useState(false);
-  const [promptsExpanded, setPromptsExpanded] = useState(true);
+  const [promptsExpanded, setPromptsExpanded] = useState(false); // Default to collapsed
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     fetchDataSources();
@@ -117,14 +118,30 @@ export default function ChatPage() {
         onSelect={handleDataSourceSelect}
       />
 
-      <div className="flex h-[calc(100vh-8rem)] -mx-6 -mb-6 bg-gradient-to-br from-background via-background to-muted/20">
-        {/* Chat Sidebar - Data Sources & Templates */}
-        <ChatSidebar 
-          onDataSourceSelect={handleDataSourceSelect}
-          selectedDataSourceId={selectedDataSourceId}
-          dataSources={dataSources}
-          loading={loading}
-        />
+      <div className="flex h-[calc(100vh-8rem)] -mx-6 -mb-6 bg-gradient-to-br from-background via-background to-muted/20 overflow-hidden relative">
+        {/* Chat Sidebar - Data Sources & Templates - Collapsible */}
+        <div className={`flex-shrink-0 transition-all duration-300 ${sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-[280px]'}`}>
+          <ChatSidebar 
+            onDataSourceSelect={handleDataSourceSelect}
+            selectedDataSourceId={selectedDataSourceId}
+            dataSources={dataSources}
+            loading={loading}
+          />
+        </div>
+        
+        {/* Sidebar Toggle Button */}
+        <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className={`absolute top-1/2 -translate-y-1/2 z-20 p-2 bg-background border border-border/50 rounded-r-lg shadow-lg hover:bg-accent transition-all duration-300 ${
+            sidebarCollapsed ? 'left-0' : 'left-[280px]'
+          }`}
+        >
+          {sidebarCollapsed ? (
+            <PanelLeftOpen className="h-4 w-4" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4" />
+          )}
+        </button>
         
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col bg-background/50 backdrop-blur-sm border-l border-border/50 min-w-0 shadow-sm overflow-hidden">
@@ -160,22 +177,22 @@ export default function ChatPage() {
           
           {/* Sample Prompts - Collapsible and Compact */}
           {selectedDataSourceId && samplePrompts.length > 0 && (
-            <div className="flex-shrink-0 border-b border-border/50 bg-gradient-to-r from-indigo-50/60 via-purple-50/40 to-pink-50/30 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/15 max-h-[180px] overflow-hidden flex flex-col">
+            <div className="flex-shrink-0 border-b border-border/50 bg-gradient-to-r from-indigo-50/60 via-purple-50/40 to-pink-50/30 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/15 max-h-[120px] overflow-hidden flex flex-col">
               <button
                 onClick={() => setPromptsExpanded(!promptsExpanded)}
-                className="w-full px-6 py-2 flex items-center justify-between hover:bg-indigo-100/50 dark:hover:bg-indigo-900/20 transition-colors flex-shrink-0"
+                className="w-full px-6 py-1.5 flex items-center justify-between hover:bg-indigo-100/50 dark:hover:bg-indigo-900/20 transition-colors flex-shrink-0"
               >
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Sample Prompts ({samplePrompts.length})
                 </span>
                 {promptsExpanded ? (
-                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                 )}
               </button>
               {promptsExpanded && (
-                <div className="px-6 pb-3 overflow-y-auto flex-1 min-h-0">
+                <div className="px-6 pb-2 overflow-y-auto flex-1 min-h-0">
                   <SamplePrompts 
                     prompts={samplePrompts}
                     loading={promptsLoading}
@@ -270,10 +287,10 @@ export default function ChatPage() {
           )}
           
           {/* C1 Chat Component - Must take remaining space */}
-          <div className="flex-1 min-h-0 relative overflow-hidden">
+          <div className="flex-1 min-h-0 relative overflow-hidden w-full" style={{ height: '100%' }}>
             {selectedDataSourceId ? (
-              <div className="absolute inset-0 w-full h-full overflow-hidden">
-                <div className="w-full h-full flex flex-col">
+              <div className="absolute inset-0 w-full h-full" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', width: '100%' }}>
                   <C1Chat 
                     apiUrl={`/api/chat?dataSourceId=${selectedDataSourceId}`}
                     theme={{ mode: "dark" }}

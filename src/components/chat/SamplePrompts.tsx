@@ -24,23 +24,23 @@ export function SamplePrompts({ prompts, loading, onPromptSelect }: SamplePrompt
   }
 
   return (
-    <div className="py-3">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="p-1 rounded-md bg-indigo-100 dark:bg-indigo-900/50">
-          <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+    <div className="py-2">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="p-0.5 rounded bg-indigo-100 dark:bg-indigo-900/50">
+          <Sparkles className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
         </div>
         <p className="text-xs font-semibold text-indigo-900 dark:text-indigo-100 tracking-tight">
           Try asking:
         </p>
       </div>
-      <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+      <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
         {prompts.map((prompt, index) => (
           <Button
             key={index}
             variant="outline"
             size="sm"
             className={cn(
-              "text-xs h-auto py-1.5 px-3 rounded-md",
+              "text-xs h-auto py-1 px-2.5 rounded-md",
               "bg-white/60 dark:bg-black/20 backdrop-blur-sm",
               "border-indigo-200/60 dark:border-indigo-800/60",
               "hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 dark:hover:from-indigo-950/50 dark:hover:to-purple-950/30",
@@ -54,7 +54,7 @@ export function SamplePrompts({ prompts, loading, onPromptSelect }: SamplePrompt
             onClick={() => onPromptSelect?.(prompt)}
             title={prompt}
           >
-            {prompt.length > 50 ? `${prompt.substring(0, 50)}...` : prompt}
+            {prompt.length > 45 ? `${prompt.substring(0, 45)}...` : prompt}
           </Button>
         ))}
       </div>

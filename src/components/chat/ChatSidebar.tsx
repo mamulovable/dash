@@ -78,7 +78,7 @@ export function ChatSidebar({
   };
 
   return (
-    <div className="flex h-full w-[300px] flex-shrink-0 flex-col border-r border-border/50 bg-gradient-to-b from-background to-muted/10 p-5 space-y-5 overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+    <div className="flex h-full w-[280px] flex-shrink-0 flex-col border-r border-border/50 bg-gradient-to-b from-background to-muted/10 p-4 space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
       {/* Data Source Selector */}
       <div>
         <Card className="border-border/50 shadow-sm bg-card/50 backdrop-blur-sm">
