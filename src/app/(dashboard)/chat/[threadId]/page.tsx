@@ -72,30 +72,6 @@ export default function FullScreenChatPage() {
       router.replace(newUrl);
     }
   }, [selectedDataSourceId, threadId, router]);
-
-  const fetchDataSources = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/data-sources");
-      const result = await response.json();
-
-      if (result.success) {
-        setDataSources(result.data || []);
-        // If URL has dataSourceId, use it
-        if (dataSourceIdFromUrl) {
-          const source = result.data?.find((ds: DataSource) => ds.id === dataSourceIdFromUrl);
-          if (source) {
-            setSelectedDataSourceId(source.id);
-            setSelectedDataSourceName(source.name);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching data sources:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
   
   const handleDataSourceSelect = async (id: string, name: string) => {
     setSelectedDataSourceId(id);
